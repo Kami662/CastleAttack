@@ -1,0 +1,89 @@
+# Normalise line endings: LF in the repository, native on checkout.
+* text=auto
+
+# ---------------------------------------------------------------
+# Unity YAML assets.
+#
+# These are the files that cause painful merge conflicts. The
+# `unityyamlmerge` driver below is Unity's own YAML-aware merge
+# tool and resolves most conflicts automatically.
+#
+# IMPORTANT: this file only *names* the driver. Each developer
+# must also register it locally on their own machine — it lives
+# in .git/config, which is not committed. See README.md.
+# ---------------------------------------------------------------
+*.unity              merge=unityyamlmerge eol=lf
+*.prefab             merge=unityyamlmerge eol=lf
+*.asset              merge=unityyamlmerge eol=lf
+*.meta               merge=unityyamlmerge eol=lf
+*.mat                merge=unityyamlmerge eol=lf
+*.anim               merge=unityyamlmerge eol=lf
+*.controller         merge=unityyamlmerge eol=lf
+*.overrideController merge=unityyamlmerge eol=lf
+*.physicMaterial     merge=unityyamlmerge eol=lf
+*.physicsMaterial2D  merge=unityyamlmerge eol=lf
+*.playable           merge=unityyamlmerge eol=lf
+*.mask               merge=unityyamlmerge eol=lf
+*.brush              merge=unityyamlmerge eol=lf
+*.flare              merge=unityyamlmerge eol=lf
+*.fontsettings       merge=unityyamlmerge eol=lf
+*.guiskin            merge=unityyamlmerge eol=lf
+*.giparams           merge=unityyamlmerge eol=lf
+*.renderTexture      merge=unityyamlmerge eol=lf
+*.spriteatlas        merge=unityyamlmerge eol=lf
+*.terrainlayer       merge=unityyamlmerge eol=lf
+*.mixer              merge=unityyamlmerge eol=lf
+*.shadervariants     merge=unityyamlmerge eol=lf
+*.preset             merge=unityyamlmerge eol=lf
+
+# ---------------------------------------------------------------
+# Source
+# ---------------------------------------------------------------
+*.cs      text diff=csharp
+*.shader  text
+*.hlsl    text
+*.cginc   text
+*.asmdef  text
+*.json    text
+*.md      text
+
+# ---------------------------------------------------------------
+# Binary assets — never diffed or merged.
+#
+# When Git LFS is adopted (do this BEFORE large art lands — see
+# README.md), these lines change to:
+#   *.png filter=lfs diff=lfs merge=lfs -text
+# ---------------------------------------------------------------
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.tga    binary
+*.psd    binary
+*.tif    binary
+*.tiff   binary
+*.exr    binary
+*.hdr    binary
+*.cubemap binary
+*.fbx    binary
+*.obj    binary
+*.blend  binary
+*.blend1 binary
+*.dae    binary
+*.3ds    binary
+*.max    binary
+*.ttf    binary
+*.otf    binary
+*.wav    binary
+*.mp3    binary
+*.ogg    binary
+*.aif    binary
+*.aiff   binary
+*.mp4    binary
+*.mov    binary
+*.unitypackage binary
+*.dll    binary
+*.so     binary
+*.a      binary
+*.pdf    binary
+*.zip    binary
