@@ -4,13 +4,14 @@
 # ---------------------------------------------------------------
 # Unity YAML assets.
 #
-# These are the files that cause painful merge conflicts. The
-# `unityyamlmerge` driver below is Unity's own YAML-aware merge
-# tool and resolves most conflicts automatically.
+# These cause the painful merge conflicts. The `unityyamlmerge`
+# driver is Unity's own YAML-aware merge tool and resolves most
+# of them automatically.
 #
-# IMPORTANT: this file only *names* the driver. Each developer
-# must also register it locally on their own machine — it lives
-# in .git/config, which is not committed. See README.md.
+# IMPORTANT: this file only *names* the driver. Its definition
+# lives in .git/config, which is NOT committed — so every
+# developer must register it locally after cloning.
+# Run ./setup-dev.ps1 (Windows) or ./setup-dev.sh (mac/Linux).
 # ---------------------------------------------------------------
 *.unity              merge=unityyamlmerge eol=lf
 *.prefab             merge=unityyamlmerge eol=lf
@@ -46,44 +47,68 @@
 *.asmdef  text
 *.json    text
 *.md      text
+*.ps1     text
+*.sh      text eol=lf
 
 # ---------------------------------------------------------------
-# Binary assets — never diffed or merged.
+# Git LFS — large binary assets.
 #
-# When Git LFS is adopted (do this BEFORE large art lands — see
-# README.md), these lines change to:
-#   *.png filter=lfs diff=lfs merge=lfs -text
+# Git stores every version of a binary in full. A 50 MB .blend
+# edited ten times is 500 MB of history, permanently, for
+# everyone who clones. LFS stores pointers instead.
+#
+# Anyone cloning this repo MUST have run `git lfs install` or
+# they get text pointer files instead of real assets. The setup
+# script does this.
 # ---------------------------------------------------------------
-*.png    binary
-*.jpg    binary
-*.jpeg   binary
-*.gif    binary
-*.tga    binary
-*.psd    binary
-*.tif    binary
-*.tiff   binary
-*.exr    binary
-*.hdr    binary
-*.cubemap binary
-*.fbx    binary
-*.obj    binary
-*.blend  binary
-*.blend1 binary
-*.dae    binary
-*.3ds    binary
-*.max    binary
+
+# Textures / images
+*.png    filter=lfs diff=lfs merge=lfs -text
+*.jpg    filter=lfs diff=lfs merge=lfs -text
+*.jpeg   filter=lfs diff=lfs merge=lfs -text
+*.gif    filter=lfs diff=lfs merge=lfs -text
+*.tga    filter=lfs diff=lfs merge=lfs -text
+*.psd    filter=lfs diff=lfs merge=lfs -text
+*.tif    filter=lfs diff=lfs merge=lfs -text
+*.tiff   filter=lfs diff=lfs merge=lfs -text
+*.exr    filter=lfs diff=lfs merge=lfs -text
+*.hdr    filter=lfs diff=lfs merge=lfs -text
+*.cubemap filter=lfs diff=lfs merge=lfs -text
+
+# 3D models
+*.fbx    filter=lfs diff=lfs merge=lfs -text
+*.obj    filter=lfs diff=lfs merge=lfs -text
+*.blend  filter=lfs diff=lfs merge=lfs -text
+*.blend1 filter=lfs diff=lfs merge=lfs -text
+*.dae    filter=lfs diff=lfs merge=lfs -text
+*.3ds    filter=lfs diff=lfs merge=lfs -text
+*.max    filter=lfs diff=lfs merge=lfs -text
+*.ma     filter=lfs diff=lfs merge=lfs -text
+*.mb     filter=lfs diff=lfs merge=lfs -text
+
+# Audio
+*.wav    filter=lfs diff=lfs merge=lfs -text
+*.mp3    filter=lfs diff=lfs merge=lfs -text
+*.ogg    filter=lfs diff=lfs merge=lfs -text
+*.aif    filter=lfs diff=lfs merge=lfs -text
+*.aiff   filter=lfs diff=lfs merge=lfs -text
+
+# Video
+*.mp4    filter=lfs diff=lfs merge=lfs -text
+*.mov    filter=lfs diff=lfs merge=lfs -text
+*.webm   filter=lfs diff=lfs merge=lfs -text
+
+# Packages and native binaries
+*.unitypackage filter=lfs diff=lfs merge=lfs -text
+*.dll    filter=lfs diff=lfs merge=lfs -text
+*.so     filter=lfs diff=lfs merge=lfs -text
+*.a      filter=lfs diff=lfs merge=lfs -text
+*.bundle filter=lfs diff=lfs merge=lfs -text
+
+# ---------------------------------------------------------------
+# Small, stable binaries — plain git is fine, not worth LFS.
+# ---------------------------------------------------------------
 *.ttf    binary
 *.otf    binary
-*.wav    binary
-*.mp3    binary
-*.ogg    binary
-*.aif    binary
-*.aiff   binary
-*.mp4    binary
-*.mov    binary
-*.unitypackage binary
-*.dll    binary
-*.so     binary
-*.a      binary
 *.pdf    binary
 *.zip    binary
