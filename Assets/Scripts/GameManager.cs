@@ -5,50 +5,49 @@ public class GameManager : MonoBehaviour
     [Header("Scene refs")]
     public Transform spawnPoint;
     public Transform[] waypoints;
+    public HandManager hand;
 
     [Header("Economy")]
     public int currency = 100;
 
-    [Header("Card")]
-    [Tooltip("Temporary: the single card the spacebar plays. " +
-             "Replaced by a real hand of cards later.")]
-    public CardDefinition testCard;
-
-    // True while the player still has a move: a card assigned and enough
-    // currency to play it. Generalises to "any card in hand is affordable"
-    // once there is a real hand. GameOverManager reads this for the lose check.
-    public bool CanPlayAnyCard => testCard != null && currency >= testCard.spawnCost;
-
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            TryPlayCard();
-        }
+        // Dev shortcut: number keys 1-5 play the matching hand slot.
+        // The real input is tapping a card (placeholder UI: HandDebugUI).
+        if (Input.GetKeyDown(KeyCode.Alpha1)) PlayCardFromHand(0);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) PlayCardFromHand(1);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) PlayCardFromHand(2);
+        if (Input.GetKeyDown(KeyCode.Alpha4)) PlayCardFromHand(3);
+        if (Input.GetKeyDown(KeyCode.Alpha5)) PlayCardFromHand(4);
     }
 
-    void TryPlayCard()
+    /// <summary>
+    /// Play the card in the given hand slot if it exists and is affordable.
+    /// Spends currency, summons the card's monsters, and consumes the card
+    /// (discard + draw a replacement). Returns true on success.
+    /// </summary>
+    public bool PlayCardFromHand(int index)
     {
-        if (testCard == null)
-        {
-            Debug.LogError("No card assigned to GameManager.testCard.");
-            return;
-        }
+        if (hand == null) return false;
 
-        if (currency < testCard.spawnCost)
-        {
-            Debug.Log("Not enough currency!");
-            return;
-        }
+        CardDefinition card = hand.GetCard(index);
+        if (card == null) return false;
+        if (currency < card.spawnCost) return false;
 
         if (MonsterSpawner.Instance == null)
         {
-            Debug.LogError("No MonsterSpawner in the scene — add one before playing cards.");
-            return;
+            Debug.LogError("No MonsterSpawner in the scene — cannot play cards.");
+            return false;
         }
 
-        currency -= testCard.spawnCost;
-        MonsterSpawner.Instance.SpawnCard(testCard, spawnPoint.position, waypoints);
-        Debug.Log($"Played '{testCard.cardName}' ({testCard.spawnCount}x). Currency left: {currency}");
+        currency -= card.spawnCost;
+        MonsterSpawner.Instance.SpawnCard(card, spawnPoint.position, waypoints);
+        hand.ConsumeCard(index);
+        Debug.Log($"Played '{card.cardName}' ({card.spawnCount}x). Currency left: {currency}");
+        return true;
     }
+
+    // The player can still make a move if any card in hand is affordable.
+    // GameOverManager reads this for the lose check.
+    public bool CanPlayAnyCard => hand != null && hand.AnyAffordable(currency);
 }
