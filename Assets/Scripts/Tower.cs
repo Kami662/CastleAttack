@@ -23,14 +23,20 @@ public class Tower : MonoBehaviour
         }
     }
 
+    // Reads the spawner's live registry instead of FindObjectsByType, which
+    // scanned the whole scene on every shot. Skips null/destroyed entries
+    // defensively so a stale registry entry can never crash a shot.
     MonsterMover FindClosestMonsterInRange()
     {
-        MonsterMover[] monsters = FindObjectsByType<MonsterMover>(FindObjectsSortMode.None);
         MonsterMover closest = null;
         float closestDist = range;
 
-        foreach (MonsterMover monster in monsters)
+        var monsters = MonsterSpawner.ActiveMonsters;
+        for (int i = 0; i < monsters.Count; i++)
         {
+            MonsterMover monster = monsters[i];
+            if (monster == null) continue;
+
             float dist = Vector3.Distance(transform.position, monster.transform.position);
             if (dist <= closestDist)
             {

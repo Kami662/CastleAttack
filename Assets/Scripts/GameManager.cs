@@ -25,10 +25,14 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        if (MonsterSpawner.Instance == null)
+        {
+            Debug.LogError("No MonsterSpawner in the scene — add one before spawning.");
+            return;
+        }
+
         currency -= spawnCost;
-        GameObject monster = Instantiate(monsterPrefab, spawnPoint.position, Quaternion.identity);
-        MonsterMover mover = monster.GetComponent<MonsterMover>();
-        mover.waypoints = waypoints;
+        MonsterSpawner.Instance.Spawn(monsterPrefab, spawnPoint.position, waypoints);
 
         Debug.Log($"Spawned monster. Currency left: {currency}");
     }

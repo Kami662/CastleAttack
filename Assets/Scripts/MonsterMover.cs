@@ -6,7 +6,29 @@ public class MonsterMover : MonoBehaviour
     public float speed = 3f;
     public int damage = 10;
 
+    public int maxHP = 30;
+    private int currentHP;
+
     private int currentWaypointIndex = 0;
+
+    // Register/unregister with the spawner's live-monster registry.
+    // Done in OnEnable/OnDisable so it stays correct if a monster is
+    // later reused from a pool (deactivate -> reactivate) rather than
+    // freshly created.
+    void OnEnable()
+    {
+        MonsterSpawner.Register(this);
+    }
+
+    void OnDisable()
+    {
+        MonsterSpawner.Unregister(this);
+    }
+
+    void Start()
+    {
+        currentHP = maxHP;
+    }
 
     void Update()
     {
@@ -28,28 +50,31 @@ public class MonsterMover : MonoBehaviour
 
     void OnReachedCastle()
     {
-        Castle castle = FindObjectOfType<Castle>();
+        Castle castle = FindAnyObjectByType<Castle>();
         if (castle != null)
         {
-            castle.TakeDamage(damage); // Example damage value
+            castle.TakeDamage(damage);
         }
-        Destroy(gameObject);
+        Die();
     }
 
-    public int maxHP = 30;
-private int currentHP;
-
-void Start()
-{
-    currentHP = maxHP;
-}
-
-public void TakeDamage(int amount)
-{
-    currentHP -= amount;
-    if (currentHP <= 0)
+    public void TakeDamage(int amount)
     {
-        Destroy(gameObject);
+        currentHP -= amount;
+        if (currentHP <= 0)
+        {
+            Die();
+        }
     }
-}
+
+    // Removal always goes through the spawner so pooling can be swapped in
+    // by changing only MonsterSpawner. Falls back to Destroy if the spawner
+    // somehow isn't present.
+    void Die()
+    {
+        if (MonsterSpawner.Instance != null)
+            MonsterSpawner.Instance.Despawn(this);
+        else
+            Destroy(gameObject);
+    }
 }

@@ -32,8 +32,9 @@ public class GameOverManager : MonoBehaviour
 
         if (gameManager != null && gameManager.currency < gameManager.spawnCost)
         {
-            MonsterMover[] monsters = FindObjectsByType<MonsterMover>(FindObjectsSortMode.None);
-            if (monsters.Length == 0)
+            // Ask the spawner's live registry rather than scanning the whole
+            // scene. Consistent with Tower, and no FindObjectsByType per frame.
+            if (MonsterSpawner.ActiveMonsters.Count == 0)
             {
                 ShowLose();
             }
