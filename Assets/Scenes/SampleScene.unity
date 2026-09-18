@@ -2027,7 +2027,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64f9bb3dcf7bd254bba2f13a73f54c0a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  monsterPrefab: {fileID: 1640811771736085792, guid: 26c6b7f141024dd40b027f8719c05869, type: 3}
   spawnPoint: {fileID: 1803380165}
   waypoints:
   - {fileID: 1850706376}
@@ -2036,7 +2035,7 @@ MonoBehaviour:
   - {fileID: 917423472}
   - {fileID: 922615069}
   currency: 100
-  spawnCost: 20
+  testCard: {fileID: 11400000, guid: b740ef3571590db448aa533fbf9e39dc, type: 2}
 --- !u!4 &2117061131
 Transform:
   m_ObjectHideFlags: 0

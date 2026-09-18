@@ -30,7 +30,7 @@ public class GameOverManager : MonoBehaviour
             return;
         }
 
-        if (gameManager != null && gameManager.currency < gameManager.spawnCost)
+        if (gameManager != null && !gameManager.CanPlayAnyCard)
         {
             // Ask the spawner's live registry rather than scanning the whole
             // scene. Consistent with Tower, and no FindObjectsByType per frame.

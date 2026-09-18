@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -43,7 +44,7 @@ public class MonsterSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// Create a monster at a position and give it a path.
+    /// Create a single monster at a position and give it a path.
     /// Later: pull from a pool instead of instantiating.
     /// </summary>
     public MonsterMover Spawn(GameObject prefab, Vector3 position, Transform[] waypoints)
@@ -52,6 +53,31 @@ public class MonsterSpawner : MonoBehaviour
         MonsterMover mover = go.GetComponent<MonsterMover>();
         if (mover != null) mover.waypoints = waypoints;
         return mover;
+    }
+
+    /// <summary>
+    /// Summon everything a card describes: spawnCount monsters, staggered by
+    /// spawnInterval so a swarm reads as a stream rather than one blob.
+    /// </summary>
+    public void SpawnCard(CardDefinition card, Vector3 position, Transform[] waypoints)
+    {
+        if (card == null || card.monsterPrefab == null)
+        {
+            Debug.LogWarning("SpawnCard called with a null card or prefab.");
+            return;
+        }
+        StartCoroutine(SpawnGroup(card, position, waypoints));
+    }
+
+    private IEnumerator SpawnGroup(CardDefinition card, Vector3 position, Transform[] waypoints)
+    {
+        int count = Mathf.Max(1, card.spawnCount);
+        for (int i = 0; i < count; i++)
+        {
+            Spawn(card.monsterPrefab, position, waypoints);
+            if (card.spawnInterval > 0f && i < count - 1)
+                yield return new WaitForSeconds(card.spawnInterval);
+        }
     }
 
     /// <summary>
