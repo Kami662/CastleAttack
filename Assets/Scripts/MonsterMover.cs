@@ -11,52 +11,101 @@ public class MonsterMover : MonoBehaviour
 
     private int currentWaypointIndex = 0;
 
-    // Which prefab this instance came from. The spawner sets it so Despawn
-    // can return the monster to the correct pool. Not shown in the Inspector.
+    [Header("Attacking towers")]
+    [Tooltip("How close the monster gets before it starts hitting a tower.")]
+    public float attackRange = 1.5f;
+    [Tooltip("Hits per second dealt to a tower it's attacking (uses 'damage' per hit).")]
+    public float attacksPerSecond = 1f;
+
+    // The prefab's authored stats, captured once in Awake. OnSpawn restores
+    // these every spawn so a pooled monster never keeps a previous card's
+    // override; ApplyStats re-applies a card override on top afterwards.
+    private int defaultMaxHP;
+    private int defaultDamage;
+    private float defaultSpeed;
+
+    // Attack-tower runtime state.
+    private Tower targetTower;
+    private float attackCooldown;
+
     [HideInInspector] public GameObject SourcePrefab;
 
-    // Register/unregister with the spawner's live-monster registry.
-    // Done in OnEnable/OnDisable so it stays correct now that a monster is
-    // reused from a pool (deactivate -> reactivate) rather than freshly
-    // created and destroyed.
-    void OnEnable()
-    {
-        MonsterSpawner.Register(this);
-    }
-
-    void OnDisable()
-    {
-        MonsterSpawner.Unregister(this);
-    }
+    void OnEnable() { MonsterSpawner.Register(this); }
+    void OnDisable() { MonsterSpawner.Unregister(this); }
 
     void Awake()
     {
-        // Sane default for any monster placed directly in a scene for testing.
-        // Every spawned monster gets its real reset from OnSpawn() below.
+        defaultMaxHP = maxHP;
+        defaultDamage = damage;
+        defaultSpeed = speed;
         currentHP = maxHP;
     }
 
     /// <summary>
-    /// Reset all per-life state and start moving. Called by MonsterSpawner on
-    /// EVERY spawn -- fresh or reused from the pool.
-    ///
-    /// THIS IS THE HEART OF POOLING CORRECTNESS. Start() and field initializers
-    /// only run when an object is first instantiated, NOT when a pooled object
-    /// is reactivated. A monster reused without this reset would come back with
-    /// its last HP (often 0) and its last waypoint index (the castle), so it
-    /// would look "born already dead" or instantly hit the castle. Anything
-    /// that becomes per-life state later (status effects, buffs) must be
-    /// cleared here too.
+    /// Reset all per-life state. Called by MonsterSpawner on EVERY spawn (fresh
+    /// or pooled) — Start()/field initializers don't run on a reused object, so
+    /// this is where per-life state must be cleared.
     /// </summary>
     public void OnSpawn(Transform[] wp)
     {
         waypoints = wp;
+
+        maxHP = defaultMaxHP;
+        damage = defaultDamage;
+        speed = defaultSpeed;
+
         currentHP = maxHP;
         currentWaypointIndex = 0;
-        enabled = true; // Update() disables this on reaching the castle; re-arm it.
+        targetTower = null;
+        attackCooldown = 0f;
+        enabled = true;
+    }
+
+    /// <summary>Per-card stat override (a "boss"/"elite" from the same prefab).</summary>
+    public void ApplyStats(int hp, int dmg, float spd)
+    {
+        maxHP = hp;
+        damage = dmg;
+        speed = spd;
+        currentHP = hp;
     }
 
     void Update()
+    {
+        // Ordered to attack towers: go after the nearest standing one. If none
+        // are left, fall through to normal path-following.
+        if (UnitCommander.Current == UnitCommander.Order.AttackTowers && AttackNearestTower())
+            return;
+
+        FollowPath();
+    }
+
+    // Returns true if there was a tower to deal with this frame.
+    bool AttackNearestTower()
+    {
+        if (targetTower == null || targetTower.IsDestroyed)
+            targetTower = FindNearestTower();
+
+        if (targetTower == null) return false;
+
+        Vector3 towerPos = targetTower.transform.position;
+        if (Vector3.Distance(transform.position, towerPos) > attackRange)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, towerPos, speed * Time.deltaTime);
+        }
+        else
+        {
+            attackCooldown -= Time.deltaTime;
+            if (attackCooldown <= 0f)
+            {
+                targetTower.TakeDamage(damage);
+                attackCooldown = 1f / Mathf.Max(0.01f, attacksPerSecond);
+            }
+        }
+        return true;
+    }
+
+    void FollowPath()
     {
         if (waypoints == null || waypoints.Length == 0) return;
 
@@ -74,27 +123,34 @@ public class MonsterMover : MonoBehaviour
         }
     }
 
+    Tower FindNearestTower()
+    {
+        Tower closest = null;
+        float best = Mathf.Infinity;
+        var towers = Tower.StandingTowers;
+        for (int i = 0; i < towers.Count; i++)
+        {
+            Tower t = towers[i];
+            if (t == null || t.IsDestroyed) continue;
+            float d = Vector3.Distance(transform.position, t.transform.position);
+            if (d < best) { best = d; closest = t; }
+        }
+        return closest;
+    }
+
     void OnReachedCastle()
     {
         Castle castle = FindAnyObjectByType<Castle>();
-        if (castle != null)
-        {
-            castle.TakeDamage(damage);
-        }
+        if (castle != null) castle.TakeDamage(damage);
         Die();
     }
 
     public void TakeDamage(int amount)
     {
         currentHP -= amount;
-        if (currentHP <= 0)
-        {
-            Die();
-        }
+        if (currentHP <= 0) Die();
     }
 
-    // Removal always goes through the spawner so the monster returns to its
-    // pool. Falls back to Destroy if the spawner somehow isn't present.
     void Die()
     {
         if (MonsterSpawner.Instance != null)

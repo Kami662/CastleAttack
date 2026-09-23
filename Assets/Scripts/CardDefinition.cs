@@ -32,4 +32,22 @@ public class CardDefinition : ScriptableObject
     [Tooltip("Seconds between each summon in the group. 0 = all on the same frame. " +
              "A small value staggers a swarm so it reads as a stream, not one blob.")]
     public float spawnInterval = 0.15f;
+
+    [Header("Unit stats (optional override)")]
+    [Tooltip("If on, monsters this card summons use the stats below instead of the " +
+             "prefab's defaults — so one card can be a tough 'boss' and another a weak " +
+             "swarm using the same monster prefab. If off, the prefab's own stats are used.")]
+    public bool overrideStats = false;
+
+    [Min(1)]
+    [Tooltip("Monster HP (only used when Override Stats is on).")]
+    public int unitMaxHP = 30;
+
+    [Min(0)]
+    [Tooltip("Damage each monster deals to the castle (only used when Override Stats is on).")]
+    public int unitDamage = 10;
+
+    [Min(0.1f)]
+    [Tooltip("Move speed (only used when Override Stats is on). Lower = slower, tankier feel.")]
+    public float unitSpeed = 3f;
 }

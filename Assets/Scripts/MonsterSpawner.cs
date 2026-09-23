@@ -115,7 +115,10 @@ public class MonsterSpawner : MonoBehaviour
         int count = Mathf.Max(1, card.spawnCount);
         for (int i = 0; i < count; i++)
         {
-            Spawn(card.monsterPrefab, position, waypoints);
+            MonsterMover m = Spawn(card.monsterPrefab, position, waypoints);
+            if (m != null && card.overrideStats)
+                m.ApplyStats(card.unitMaxHP, card.unitDamage, card.unitSpeed);
+
             if (card.spawnInterval > 0f && i < count - 1)
                 yield return new WaitForSeconds(card.spawnInterval);
         }

@@ -18,3 +18,7 @@ MonoBehaviour:
   monsterPrefab: {fileID: 1640811771736085792, guid: 26c6b7f141024dd40b027f8719c05869, type: 3}
   spawnCount: 10
   spawnInterval: 0.2
+  overrideStats: 0
+  unitMaxHP: 150
+  unitDamage: 25
+  unitSpeed: 1.5
