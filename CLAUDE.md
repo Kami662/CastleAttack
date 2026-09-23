@@ -45,8 +45,15 @@ decisions. It is mirrored from a claude.ai Project doc, which is the source of t
 
 ## Current scripts (Assets/Scripts/)
 GameManager, CardDefinition, DeckDefinition, HandManager, HandDebugUI (throwaway
-IMGUI hand), MonsterSpawner, MonsterMover, Castle, Tower, Projectile, UnitCommander,
-UIManager, GameOverManager. Editor/: GameplayRigSetup, TowerSetup.
+IMGUI hand), MonsterSpawner, MonsterMover, Castle, Tower, Projectile, ProjectilePool,
+UnitCommander, UIManager, GameOverManager, RunManager, RunState (empty shell — see
+GDD §"Anticipated: run state must outlive the encounter scene"). Editor/:
+GameplayRigSetup, TowerSetup.
+
+## Working todo list
+`docs/game-design-document.md` §12 has a checkbox-style todo list (manual Editor
+steps outstanding, in-progress architecture work, flagged VFX/design items) — check
+it at the start of a session for what's actually next.
 
 ## State
 **Done:** spawner + registry, data-driven cards, hand/deck (draw-on-play, reshuffle),

@@ -34,7 +34,7 @@ public class MonsterSpawner : MonoBehaviour
     public GameObject prewarmPrefab;
     [Min(0)]
     [Tooltip("How many of prewarmPrefab to create inactive at startup.")]
-    public int prewarmCount = 20;
+    public int prewarmCount = 200;
 
     // One pool of inactive, reusable monsters per prefab.
     private readonly Dictionary<GameObject, Queue<MonsterMover>> pools =
@@ -116,8 +116,12 @@ public class MonsterSpawner : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             MonsterMover m = Spawn(card.monsterPrefab, position, waypoints);
-            if (m != null && card.overrideStats)
-                m.ApplyStats(card.unitMaxHP, card.unitDamage, card.unitSpeed);
+            if (m != null)
+            {
+                m.SetSourceCard(card);
+                if (card.overrideStats)
+                    m.ApplyStats(card.unitMaxHP, card.unitDamage, card.unitSpeed);
+            }
 
             if (card.spawnInterval > 0f && i < count - 1)
                 yield return new WaitForSeconds(card.spawnInterval);
@@ -169,7 +173,20 @@ public class MonsterSpawner : MonoBehaviour
 
     private MonsterMover CreateNew(GameObject prefab)
     {
-        GameObject go = Instantiate(prefab);
+        GameObject go;
+        try
+        {
+            go = Instantiate(prefab);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"MonsterSpawner: failed to instantiate '{prefab.name}' " +
+                           $"({e.GetType().Name}: {e.Message}). The prefab reference is " +
+                           "likely broken — re-assign it by dragging the prefab into the " +
+                           "field in the Inspector.");
+            return null;
+        }
+
         MonsterMover mover = go.GetComponent<MonsterMover>();
         if (mover == null)
         {

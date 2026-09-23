@@ -44,6 +44,10 @@ public class GameOverManager : MonoBehaviour
     void ShowWin()
     {
         gameOver = true;
+        // Cheap now, useful once the run economy needs tuning data (GDD §7:
+        // "one resource never binds" is the risk to watch for).
+        int currencyLeft = gameManager != null ? gameManager.currency : -1;
+        Debug.Log($"[EncounterEnd] WIN — castle destroyed. Currency left: {currencyLeft}. Time: {Time.timeSinceLevelLoad:F1}s.");
         gameOverText.text = "YOU WIN!";
         gameOverText.gameObject.SetActive(true);
         if (retryButton != null) retryButton.SetActive(true);
@@ -53,6 +57,9 @@ public class GameOverManager : MonoBehaviour
     void ShowLose()
     {
         gameOver = true;
+        int hpLeft = castle != null ? castle.currentHP : -1;
+        int hpMax = castle != null ? castle.maxHP : -1;
+        Debug.Log($"[EncounterEnd] LOSE — no affordable cards, no monsters left. Castle HP left: {hpLeft}/{hpMax}. Time: {Time.timeSinceLevelLoad:F1}s.");
         gameOverText.text = "YOU LOSE";
         gameOverText.gameObject.SetActive(true);
         if (retryButton != null) retryButton.SetActive(true);

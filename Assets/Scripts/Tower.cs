@@ -63,8 +63,14 @@ public class Tower : MonoBehaviour
         if (projectilePrefab != null)
         {
             Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position;
-            GameObject go = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
-            Projectile shot = go.GetComponent<Projectile>();
+
+            // Pooled path (ProjectilePool in the scene) avoids an Instantiate per
+            // shot once many towers are firing at once. Falls back to a raw
+            // Instantiate if the pool hasn't been added to the scene yet.
+            Projectile shot = ProjectilePool.Instance != null
+                ? ProjectilePool.Instance.Spawn(projectilePrefab, spawnPos)
+                : Instantiate(projectilePrefab, spawnPos, Quaternion.identity).GetComponent<Projectile>();
+
             if (shot != null) shot.Launch(target, damage);
             else target.TakeDamage(damage); // prefab missing the script — don't lose the shot
         }
@@ -95,7 +101,7 @@ public class Tower : MonoBehaviour
     MonsterMover FindClosestMonsterInRange()
     {
         MonsterMover closest = null;
-        float closestDist = range;
+        float closestSqr = range * range;
 
         var monsters = MonsterSpawner.ActiveMonsters;
         for (int i = 0; i < monsters.Count; i++)
@@ -103,10 +109,10 @@ public class Tower : MonoBehaviour
             MonsterMover monster = monsters[i];
             if (monster == null) continue;
 
-            float dist = Vector3.Distance(transform.position, monster.transform.position);
-            if (dist <= closestDist)
+            float sqrDist = (monster.transform.position - transform.position).sqrMagnitude;
+            if (sqrDist <= closestSqr)
             {
-                closestDist = dist;
+                closestSqr = sqrDist;
                 closest = monster;
             }
         }

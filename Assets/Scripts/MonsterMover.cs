@@ -29,6 +29,12 @@ public class MonsterMover : MonoBehaviour
     private float attackCooldown;
 
     [HideInInspector] public GameObject SourcePrefab;
+    public bool IsAlive { get; private set; }
+
+    // Which card summoned this monster. Not read anywhere yet — prep for
+    // per-card-group unit orders (GDD §8), so that system doesn't need to
+    // retrofit an identity tag onto every already-alive monster later.
+    public CardDefinition SourceCard { get; private set; }
 
     void OnEnable() { MonsterSpawner.Register(this); }
     void OnDisable() { MonsterSpawner.Unregister(this); }
@@ -58,6 +64,8 @@ public class MonsterMover : MonoBehaviour
         currentWaypointIndex = 0;
         targetTower = null;
         attackCooldown = 0f;
+        IsAlive = true;
+        SourceCard = null;
         enabled = true;
     }
 
@@ -68,6 +76,13 @@ public class MonsterMover : MonoBehaviour
         damage = dmg;
         speed = spd;
         currentHP = hp;
+    }
+
+    /// <summary>Called by MonsterSpawner right after OnSpawn, so a reused
+    /// monster never keeps a previous card's identity.</summary>
+    public void SetSourceCard(CardDefinition card)
+    {
+        SourceCard = card;
     }
 
     void Update()
@@ -89,7 +104,7 @@ public class MonsterMover : MonoBehaviour
         if (targetTower == null) return false;
 
         Vector3 towerPos = targetTower.transform.position;
-        if (Vector3.Distance(transform.position, towerPos) > attackRange)
+        if ((towerPos - transform.position).sqrMagnitude > attackRange * attackRange)
         {
             transform.position = Vector3.MoveTowards(transform.position, towerPos, speed * Time.deltaTime);
         }
@@ -126,14 +141,14 @@ public class MonsterMover : MonoBehaviour
     Tower FindNearestTower()
     {
         Tower closest = null;
-        float best = Mathf.Infinity;
+        float bestSqr = Mathf.Infinity;
         var towers = Tower.StandingTowers;
         for (int i = 0; i < towers.Count; i++)
         {
             Tower t = towers[i];
             if (t == null || t.IsDestroyed) continue;
-            float d = Vector3.Distance(transform.position, t.transform.position);
-            if (d < best) { best = d; closest = t; }
+            float sqrDist = (t.transform.position - transform.position).sqrMagnitude;
+            if (sqrDist < bestSqr) { bestSqr = sqrDist; closest = t; }
         }
         return closest;
     }
@@ -147,12 +162,14 @@ public class MonsterMover : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
+        if (!IsAlive) return;
         currentHP -= amount;
         if (currentHP <= 0) Die();
     }
 
     void Die()
     {
+        IsAlive = false;
         if (MonsterSpawner.Instance != null)
             MonsterSpawner.Instance.Despawn(this);
         else

@@ -420,3 +420,43 @@ So every surface (claude.ai chat, **Claude Code**) and the incoming developer sh
 - **Still uncommitted in the working tree:** the girlfriend's tower art (`Assets/Art/`), `Tower.prefab`, `TowerSetup.cs`, per-card unit variety (`CardDefinition` / `MonsterSpawner` / `MonsterMover`), and the destructible-tower / projectile / unit-command scripts. These need a commit from Kevin's machine (LFS handles the `.fbx`).
 - **Known snag:** `Assets/Scripts/UnitCommader.cs` is misspelled — the class inside is `UnitCommander`, and Unity requires the filename to match the MonoBehaviour class name or the component cannot be added. Rename the file in the Unity Project window.
 - **Cleanup:** `_to_delete/` in each repo root holds stale git lock files; delete when convenient.
+
+## 12. Working Todo List (compiled 2026-09-23, Claude Code session)
+
+A flatter, checkbox-style list to actually work from — narrower and more mechanical than the Build Order/Open Questions in §9, which stay the place for design-level decisions and rationale. Update this list as items complete; fold anything design-significant back into the relevant § above once decided.
+
+### Manual Editor steps outstanding (Kevin)
+- [ ] Assign `ProjectilePool.prewarmPrefab` → `Projectile_Placeholder.prefab` by dragging it into the Inspector field on the `ProjectilePool` object in `GameplayRig.prefab`. (Do not hand-edit this in YAML — see the incident note below.)
+- [ ] Decide whether to assign `MonsterSpawner.prewarmPrefab` (which monster prefab to prewarm at 200) and set it if so.
+- [ ] Add a `RunManager` GameObject to `SampleScene` — must be a **root** object, not nested under `GameplayRig`, or `DontDestroyOnLoad` won't take effect (it now warns loudly in the Console if this is wrong).
+- [ ] Full playtest pass on destructible towers + projectile + unit commands, specifically a multi-tower/overlapping-projectile scenario against one weak monster (the case the pooling fix targets).
+- [ ] Commit outstanding work per §11 repo status: tower art, `CardDefinition`/`MonsterSpawner`/`MonsterMover` changes, destructible-tower/projectile/commander scripts, plus this session's `ProjectilePool`/`RunManager`/`RunState` additions and fixes.
+- [ ] Clean up `_to_delete/` in both repos.
+
+### Architecture / scaling groundwork
+- [x] `MonsterMover.IsAlive` + `Projectile` reuse-after-despawn fix (pooled monsters were being damaged/killed twice through stale projectile references).
+- [x] `Vector3.Distance` → `sqrMagnitude` in `Tower`/`MonsterMover`/`Projectile` range checks.
+- [x] `ProjectilePool` — projectiles pooled the same way `MonsterSpawner` pools monsters, ahead of scaling to many simultaneous towers/shots.
+- [x] `MonsterSpawner.prewarmCount` default raised toward real swarm size (200).
+- [x] `RunManager` + `RunState` — empty persistent shell (§4's "design for it now" stance applied).
+- **Incident note:** a hand-edited `ProjectilePool.prewarmPrefab` reference in `GameplayRig.prefab`'s YAML caused an `InvalidCastException` on scene start (fixed by clearing it + adding a try/catch around `Instantiate` in both `ProjectilePool` and `MonsterSpawner`'s `CreateNew`). Lesson: prefab asset references get assigned via the Inspector, not hand-written YAML.
+- [x] Thread card/group identity onto `MonsterMover` at spawn time — `MonsterMover.SourceCard` set via `SetSourceCard()` in `MonsterSpawner.SpawnGroup`, reset in `OnSpawn`. Not consumed by anything yet; prep for per-card-group unit orders (§8).
+- [x] Instrument encounter-end reason — `GameOverManager.ShowWin`/`ShowLose` now log a `[EncounterEnd]` line with the resource state at that moment (currency left / castle HP left / time), greppable in the Console now, and a natural data source once `RunManager` needs real tuning input (§7 risk: "one resource never binds").
+
+### Fire/smoke VFX (flagged this session, not yet scoped)
+- [ ] Decide scope: destruction-moment-only effect, or a persistent "wounded" state below an HP threshold (the latter needs a threshold hook added to `Tower.TakeDamage`/`Castle.TakeDamage`, not just an on-death trigger).
+- [ ] Tower destruction VFX — rubble/collapse, screen shake, sound (already tracked as an art/VFX task in §6/§9; this generalizes it to fire/smoke specifically).
+- [ ] Extend to the castle, not just towers.
+
+### Design calls worth making soon (not urgent, raised this session — discuss before committing)
+- [ ] Wave budget as waves-cleared vs. elapsed time (§9 open question) — leaning waves: ties to the same spawn/despawn events the rest of the economy already keys off.
+- [ ] Cap initial run modifiers to the 3 named (blitz/siege/balanced) before authoring more, given §7's two-resource tuning risk.
+- [ ] Build the general status-effect system (§4 "Anticipated") before hardcoding a stun bool on `Tower` — avoids building it twice.
+- [ ] Build the path-blocking environment obstacle before flying units, so flyer balance is tuned against the real friction it's meant to solve.
+- [ ] Cheap temporary on-screen debug buttons (alongside `HandDebugUI`) to feel out the tap-to-command mobile flow before the girlfriend designs the real UI.
+
+### Next big features (unchanged from §9 — listed here for visibility)
+- Real uGUI card hand UI (replaces `HandDebugUI`) — girlfriend / UI-UX.
+- Currency/pacing model — decide by feel.
+- Swarm card — pool stress test.
+- Flying units.
