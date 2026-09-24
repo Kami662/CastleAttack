@@ -23,6 +23,7 @@ public class MonsterMover : MonoBehaviour
     private int defaultMaxHP;
     private int defaultDamage;
     private float defaultSpeed;
+    private Vector3 defaultScale;
 
     // Attack-tower runtime state.
     private Tower targetTower;
@@ -44,6 +45,7 @@ public class MonsterMover : MonoBehaviour
         defaultMaxHP = maxHP;
         defaultDamage = damage;
         defaultSpeed = speed;
+        defaultScale = transform.localScale;
         currentHP = maxHP;
     }
 
@@ -59,6 +61,7 @@ public class MonsterMover : MonoBehaviour
         maxHP = defaultMaxHP;
         damage = defaultDamage;
         speed = defaultSpeed;
+        transform.localScale = defaultScale;
 
         currentHP = maxHP;
         currentWaypointIndex = 0;
@@ -70,12 +73,13 @@ public class MonsterMover : MonoBehaviour
     }
 
     /// <summary>Per-card stat override (a "boss"/"elite" from the same prefab).</summary>
-    public void ApplyStats(int hp, int dmg, float spd)
+    public void ApplyStats(int hp, int dmg, float spd, float scale)
     {
         maxHP = hp;
         damage = dmg;
         speed = spd;
         currentHP = hp;
+        transform.localScale = defaultScale * scale;
     }
 
     /// <summary>Called by MonsterSpawner right after OnSpawn, so a reused

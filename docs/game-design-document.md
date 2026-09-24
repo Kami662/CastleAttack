@@ -8,9 +8,12 @@ _This file is a mirror. The source of truth is the claude.ai Project doc; re-syn
 
 ## 1. Concept
 
-A mobile **roguelite** tower-defense game with the roles reversed. The player is the **attacker**: instead of placing towers, they play monster cards from a deck and send waves of monsters down a path toward an AI-controlled castle. The castle defends itself with its own towers, which auto-target and damage the monsters as they approach. A run is a sequence of increasingly well-defended castles; losing ends the run and sends the player back to the start with some permanent progress kept.
+A **roguelite** tower-defense game with the roles reversed, designed touch-first — shipping on PC first, mobile after (see Platform below). The player is the **attacker**: instead of placing towers, they play monster cards from a deck and send waves of monsters down a path toward an AI-controlled castle. The castle defends itself with its own towers, which auto-target and damage the monsters as they approach. A run is a sequence of increasingly well-defended castles; losing ends the run and sends the player back to the start with some permanent progress kept.
 
-- **Platform:** Mobile (built in Unity, C#)
+- **Platform — decided 2026-09-24: PC first, mobile after, designed touch-first** (built in Unity, C#).
+  - **Alpha / v1 ships on PC:** a **WebGL build on itch.io** (a link anyone can play in the browser — the best format for a portfolio piece) plus a **Windows** build.
+  - **Mobile (Android, then iOS) comes after alpha.** Development and testing already happen on Windows, and phone builds add signing, installs and per-device performance work before anyone can play — worth doing once the game is fun, not before. iOS also needs a Mac.
+  - **Why touch-first anyway:** a UI designed for touch works with a mouse, but a mouse-first UI (hover, small targets, right-click, keyboard) doesn't survive the move to phones. Following the touch-compatible rule (§8) keeps the later Android port to build settings + performance work, not a redesign.
 - **Purpose:** First game project, built as a CV/portfolio piece
 - **Engine:** Unity 6000.6.1f1, Universal Render Pipeline (URP)
 - **Theme (v1):** Elemental / magic
@@ -40,7 +43,7 @@ The single-battle loop, which is fully implemented and tuned (see §5). In the r
    - **Lose:** the player can no longer afford to play any card in hand and no monsters remain alive on the field.
 6. On either outcome the game freezes and a **Retry** action reloads the encounter (see §4).
 
-A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system"), and the player can now issue a global **order** to the horde — *focus the castle* (default) or *attack the towers* — the first slice of the unit-command system (§3, §4). Current input is keyboard for desktop testing only (number keys to play cards; C / T for orders) — see §8 for the actual mobile input design. **The key open pacing question is whether currency regenerates during an encounter (a fixed pool spent down vs. a regenerating income), which — together with the card-draw cadence — defines the moment-to-moment feel (§9).**
+A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system"), and the player can now issue a global **order** to the horde — *focus the castle* (default) or *attack the towers* — the first slice of the unit-command system (§3, §4). Current input is keyboard for desktop testing only (number keys to play cards; C / T for orders) — see §8 for the actual touch-first input design. **The key open pacing question is whether currency regenerates during an encounter (a fixed pool spent down vs. a regenerating income), which — together with the card-draw cadence — defines the moment-to-moment feel (§9).**
 
 ## 3. Longer-term Design (planned, not yet built)
 
@@ -153,7 +156,7 @@ A unit class that can **leave the waypoint path** once ordered and head straight
 
 ### Scripts (all in `Assets/Scripts/`)
 - **`GameManager.cs`** — owns currency and card-play input. `PlayCardFromHand(index)`: affordability check → deduct the card's cost → `MonsterSpawner.SpawnCard(...)` → tell `HandManager` to consume the card + redraw. Number keys 1-5 play hand slots (dev shortcut). Owns `spawnPoint`/`waypoints`. Exposes `CanPlayAnyCard` = `HandManager.AnyAffordable(currency)` for the lose-check. Does not instantiate monsters or hold a prefab — the card carries it.
-- **`CardDefinition.cs`** — **a ScriptableObject: a monster card as pure data** (name, description, currency `spawnCost`, `monsterPrefab`, `spawnCount`, `spawnInterval`). Authored via **Assets ▸ Create ▸ Castle Attack ▸ Card**. Also carries optional **per-card stat overrides** (`overrideStats` + `unitMaxHP` / `unitDamage` / `unitSpeed`), so one prefab can be a boss on one card and a swarm on another (see "Built: per-card unit variety").
+- **`CardDefinition.cs`** — **a ScriptableObject: a monster card as pure data** (name, description, currency `spawnCost`, `monsterPrefab`, `spawnCount`, `spawnInterval`). Authored via **Assets ▸ Create ▸ Castle Attack ▸ Card**. Also carries optional **per-card stat overrides** (`overrideStats` + `unitMaxHP` / `unitDamage` / `unitSpeed` / `unitScale`), so one prefab can be a boss on one card and a swarm on another (see "Built: per-card unit variety").
 - **`DeckDefinition.cs`** — a ScriptableObject: a deck as an ordered `List<CardDefinition>` (duplicates allowed = multiple copies). A starter deck in concrete form. Authored via **Assets ▸ Create ▸ Castle Attack ▸ Deck**.
 - **`HandManager.cs`** — the runtime card state for an encounter: a shuffled draw pile built from a `DeckDefinition`, the hand, and a discard pile. Draw-on-play; reshuffles the discard back in when the draw pile empties. Pure card bookkeeping — spends no currency and spawns nothing. Its input is "a list of `CardDefinition`s", so `RunManager` can later feed it the run's grown deck instead of a fixed asset — the small swap that connects it to the roguelite layer.
 - **`HandDebugUI.cs`** — a **throwaway** IMGUI (`OnGUI`) placeholder hand: a row of buttons along the screen bottom, greyed when unaffordable, tap to play. Dev-only; delete it and its GameObject when the real uGUI/TMP hand ships (§8). Nothing else depends on it.
@@ -269,7 +272,7 @@ Stun is the first status effect, not the last — slows, DoT, armor reduction fo
 | Parameter | Value |
 |---|---|
 | Castle Max HP | **40** |
-| Tower Range | 6 |
+| Tower Range | **12** (was 6; doubled with the map on 2026-09-24 — see below) |
 | Tower Fire Rate | 1 shot/sec |
 | Tower Damage | 15 per hit |
 | Monster Max HP | 30 |
@@ -284,8 +287,17 @@ Stun is the first status effect, not the last — slows, DoT, armor reduction fo
 | Lone Grunt | 20 | 1× | — |
 | Grunt Rush | 40 | 5× | 0.3s |
 | Big Push | 60 | 10× | 0.2s |
+| Swarm | 80 | 50× (HP 5, dmg 1, speed 4, scale 0.5) | 0.05s |
 
-Starter deck: 3× Lone Grunt, 2× Grunt Rush, 1× Big Push (6 cards). Cards may also carry stat overrides (off by default).
+Starter deck: 3× Lone Grunt, 2× Grunt Rush, 1× Big Push, 1× Swarm (7 cards). Cards may also carry stat overrides (off by default; Swarm uses them).
+
+**Swarm card (2026-09-24, first pass — untuned):** 50 tiny, fragile units — one tower hit kills each, 1 damage each at the castle. First playtest on the doubled map: **Swarm alone won** (40 of 50 reached the castle, exactly its 40 HP) in 36s, 0 errors — a clean pool stress test, but too strong. The main reason is tower coverage, not the card: after the map doubled, `Tower_Guard` at (6,0,6) is exactly 6 units (its range) from the nearest path point, so it barely fires, and `Tower_Guard (1)` covers only ~10 of the path's 96 units. Retune tower range/placement for the bigger map before judging Swarm's numbers.
+
+**Tower retune for the doubled map (2026-09-24):** decision — **double tower range only** (6 → 12 on `Tower.prefab`); monster/projectile speeds unchanged. Chosen over "scale everything ×2" (which would have reproduced the old balance exactly) and "move towers closer". Consequence: crossing the 96-unit path takes ~32s at speed 3 (was ~16s), and monsters spend about twice as long in range, so **towers are roughly 2× stronger than the validated v1 balance above** — this is a new balance point, to be re-judged by feel. Path coverage went from ~10 to ~45 of 96 units (each tower covers its own stretch, no overlap). Playtest results:
+- **Swarm alone:** no longer wins — 29 of 50 got through (towers killed 21), castle left at 11/40.
+- **Lone Grunt:** dies ~7s in, at the first tower — trickling still loses. ✅
+- Swarm + Lone Grunt (the whole 100 currency) → loss at 11/40, 0 errors.
+- Not yet tested: whether Grunt Rush + Big Push (15 grunts) still wins, i.e. whether rushing still beats the towers. That's the next thing to check.
 
 **Towers & attacking them (new, first-pass — untuned):** Tower `maxHealth` 100; fires a visible projectile (speed ~20). A monster ordered onto a tower: `attackRange` 1.5, `attacksPerSecond` 1, dealing its `damage` per hit. So one grunt (10 dmg) takes ~10s to fell a 100-HP tower alone; a group is much faster.
 
@@ -320,7 +332,13 @@ Parameters still to tune: tower HP, monster attack rate/range, stun duration & s
 - **Save/load — design for it now, build later (§4).**
 - **Data-driven content — done (§4).** Reuse the `CreateAssetMenu` SO pattern for run modifiers and castle definitions.
 
-## 8. Mobile Input / Controls
+## 8. Input / Controls (touch-first)
+
+**Touch-compatible rule (applies to all UI, on every platform):** the game ships on PC first but is designed for touch (§1, Platform), so every screen must work identically with a finger or a mouse:
+- Every action is **one tap/click on a big target** — no drag-only, double-click-only, long-press-only or right-click actions.
+- **Nothing is hover-only.** Tooltips, costs, HP and order state are visible without a cursor.
+- **Keyboard shortcuts are dev-only** (number keys, C/T, R) — never the only way to do something, and kept out of player builds.
+- Design at phone aspect ratios (16:9 up to 20:9) with safe-area-aware anchoring, so PC and a later phone build share one layout.
 
 - **Decision: card-group selection, not free-form unit picking.** Units are selected for commands by tapping the icon of the card that summoned them — reuses the card as the selection handle, avoids fiddly drag-select, supports both command scopes. (The current build uses a single global order on dev keys; this per-card scope replaces it, §4.)
 - Playing a card to summon works via direct tap.
@@ -344,10 +362,10 @@ Parameters still to tune: tower HP, monster attack rate/range, stun duration & s
 8. ~~**gf's tower model in-game**~~ → **done 2026-09-19** (§4). First art asset; also surfaced the FBX-export recipe (§11).
 9. ~~**Per-card unit variety**~~ → **done 2026-09-22** (§4). Stat overrides on `CardDefinition`.
 10. **Integrating: destructible towers + visible projectile + unit commands** (§4) — `Tower` HP/registry, `Projectile`, `UnitCommander` global toggle, monster attack-tower behavior. Code delivered 2026-09-22/23; being pasted + tested.
-11. **Next, in parallel:**
+11. **From here on, the build order is the alpha roadmap in §12** (phases 0–5 toward a first playable alpha). The items below are folded into it:
     - **Card hand UI** (real uGUI/TMP, replaces the placeholder) — girlfriend / UI-UX. §8.
     - **Pacing / currency model** — design-by-feel on the built hand.
-    - **Swarm card** — first real stress test of the pool (assign `prewarmPrefab`).
+    - ~~**Swarm card** — first real stress test of the pool (assign `prewarmPrefab`).~~ → **done 2026-09-24** (§5): 50× Swarm ran clean with both pools prewarmed; too strong until towers are retuned for the doubled map.
     - **Flying units** (§3) — new unit class that leaves the path; the incoming developer or the user.
     - **Clean tower re-export** from the artist (drops the Unity-side scale hacks).
     - **Tower-destruction VFX** — rubble/collapse + sound (art track).
@@ -374,6 +392,7 @@ Parameters still to tune: tower HP, monster attack rate/range, stun duration & s
 - Where shared cloud storage for source art lives (§11).
 
 ### Resolved
+- ~~Mobile only, PC only, or both?~~ → **PC first** (WebGL on itch.io + Windows) for alpha/v1, **mobile after** (Android, then iOS); **designed touch-first** so the port stays cheap (§1 Platform, §8 rule). Decided 2026-09-24.
 - ~~Starting deck: random, or fixed pre-built?~~ → **pre-made starter decks** (a `DeckDefinition`), grown during the run.
 - ~~Towers destructible, suppressible, or rebuilding?~~ → **permanently destructible** within an encounter (built 2026-09-22/23); the run economy balances it.
 - ~~Should suppression/stun exist instead of destruction?~~ → **both**; destruction default, stun a card.
@@ -441,49 +460,86 @@ So every surface (claude.ai chat, **Claude Code**) and the incoming developer sh
 - **Known snag:** `Assets/Scripts/UnitCommader.cs` is misspelled — the class inside is `UnitCommander`, and Unity requires the filename to match the MonoBehaviour class name or the component cannot be added. Rename the file in the Unity Project window.
 - **Cleanup:** `_to_delete/` in each repo root holds stale git lock files; delete when convenient.
 
-## 12. Working Todo List (compiled 2026-09-23, Claude Code session)
+## 12. Road to First Playable Alpha (working todo list, updated 2026-09-24)
 
-A flatter, checkbox-style list to actually work from — narrower and more mechanical than the Build Order/Open Questions in §9, which stay the place for design-level decisions and rationale. Update this list as items complete; fold anything design-significant back into the relevant § above once decided.
+The working checklist, organized around one milestone. §9 stays the place for design rationale and open questions; this is what to actually do next, in order. Owners: **[Kevin]** code/design · **[Art/UI]** 3D art + UI/UX · **[New dev]** programming support. Tick items as they land; fold decisions back into the relevant § once made.
 
-### Manual Editor steps outstanding (Kevin)
-- [ ] Assign `ProjectilePool.prewarmPrefab` → `Projectile_Placeholder.prefab` by dragging it into the Inspector field on the `ProjectilePool` object in `GameplayRig.prefab`. (Do not hand-edit this in YAML — see the incident note below.)
-- [ ] Decide whether to assign `MonsterSpawner.prewarmPrefab` (which monster prefab to prewarm at 200) and set it if so.
-- [ ] Add a `RunManager` GameObject to `SampleScene` — must be a **root** object, not nested under `GameplayRig`, or `DontDestroyOnLoad` won't take effect (it now warns loudly in the Console if this is wrong).
-- [ ] Full playtest pass on destructible towers + projectile + unit commands, specifically a multi-tower/overlapping-projectile scenario against one weak monster (the case the pooling fix targets).
-- [ ] Commit outstanding work per §11 repo status: tower art, `CardDefinition`/`MonsterSpawner`/`MonsterMover` changes, destructible-tower/projectile/commander scripts, plus this session's `ProjectilePool`/`RunManager`/`RunState` additions and fixes.
-- [ ] Clean up `_to_delete/` in both repos.
+### 12.1 What "first playable alpha" means (proposed — confirm)
+> Someone who has never seen the game opens an **itch.io link in their browser** (or runs the Windows build), starts a run, plays through **3 escalating castles** with the mouse alone (or touch), picks a new card after each castle, and reaches a run-win or run-loss screen — without anyone explaining the controls.
 
-### Architecture / scaling groundwork
-- [x] `MonsterMover.IsAlive` + `Projectile` reuse-after-despawn fix (pooled monsters were being damaged/killed twice through stale projectile references).
-- [x] `Vector3.Distance` → `sqrMagnitude` in `Tower`/`MonsterMover`/`Projectile` range checks.
-- [x] `ProjectilePool` — projectiles pooled the same way `MonsterSpawner` pools monsters, ahead of scaling to many simultaneous towers/shots.
-- [x] `MonsterSpawner.prewarmCount` default raised toward real swarm size (200).
-- [x] `RunManager` + `RunState` — empty persistent shell (§4's "design for it now" stance applied).
-- **Incident note:** a hand-edited `ProjectilePool.prewarmPrefab` reference in `GameplayRig.prefab`'s YAML caused an `InvalidCastException` on scene start (fixed by clearing it + adding a try/catch around `Instantiate` in both `ProjectilePool` and `MonsterSpawner`'s `CreateNew`). Lesson: prefab asset references get assigned via the Inspector, not hand-written YAML.
-- [x] Thread card/group identity onto `MonsterMover` at spawn time — `MonsterMover.SourceCard` set via `SetSourceCard()` in `MonsterSpawner.SpawnGroup`, reset in `OnSpawn`. Not consumed by anything yet; prep for per-card-group unit orders (§8).
-- [x] Instrument encounter-end reason — `GameOverManager.ShowWin`/`ShowLose` now log a `[EncounterEnd]` line with the resource state at that moment (currency left / castle HP left / time), greppable in the Console now, and a natural data source once `RunManager` needs real tuning input (§7 risk: "one resource never binds").
+**In scope:** a decided pacing model · a card hand + order buttons (global Focus Castle / Attack Towers) that follow the touch-compatible rule (§8) · readable feedback (tower HP, tower destruction, castle hits) · a 3-castle run with a card reward between castles · title, reward and run-end screens · ~6 cards, 1 starter deck · WebGL + Windows builds that run a 50-unit swarm smoothly. Placeholder art is fine unless it hurts readability.
 
-### Map resize + scene sync (2026-09-23/24)
-- [x] Map doubled: waypoints, spawn marker, castle, both towers and ground scaled ×2 around the origin; camera reframed. Balance numbers (tower range 6, monster speed 3) were **not** retuned — they're relatively weaker/slower on the bigger map, retune by feel.
-- [x] `PathVisualizer` — yellow Scene-view gizmo line through the waypoints, on the `Path` object.
-- [x] Scenes synced: ground into `GameplayRig`; camera/light/volume/`RunManager` into new `SceneEnvironment` prefab; SampleScene's scene-only rig overrides (tower placement, `PathVisualizer`) applied to the prefab. Both scenes now hold only prefab instances.
-- [ ] *(Only when the skybox/ambient light get customized)* Move Lighting-window Environment settings onto a small component on `SceneEnvironment` so they're prefab-owned too. Until then, change them in both scenes — see §4 "Scene structure reference".
-- [ ] Delete the one-shot editor scripts in `Assets/Editor/` (`GameplayRigSetup`, `TowerSetup`, `SceneSyncSetup`) whenever convenient — all have run.
+**Out of scope (post-alpha, §12.4):** mobile builds (Android, iOS), the two run resources, run modifiers, stun/status effects, flying units, per-card-group orders + Hold, castle-spawned defenders, meta-progression, save/load, extra starter decks, final art.
 
-### Fire/smoke VFX (flagged this session, not yet scoped)
-- [ ] Decide scope: destruction-moment-only effect, or a persistent "wounded" state below an HP threshold (the latter needs a threshold hook added to `Tower.TakeDamage`/`Castle.TakeDamage`, not just an on-death trigger).
-- [ ] Tower destruction VFX — rubble/collapse, screen shake, sound (already tracked as an art/VFX task in §6/§9; this generalizes it to fire/smoke specifically).
-- [ ] Extend to the castle, not just towers.
+### 12.2 Decisions needed (recommendation in bold — Kevin decides)
+| # | Decision | Recommendation | Blocks |
+|---|---|---|---|
+| D1 | Pacing: fixed currency pool vs. regenerating income; card-draw cadence | **Prototype regenerating income** (the current lean, §9) next to the fixed pool, play both for a session, keep one | Balance pass, castle tuning |
+| D2 | Alpha run length | **3 castles** | Castle authoring |
+| D3 | Run resources (horde strength + wave budget) in the alpha? | **Post-alpha.** Alpha run ends on the first lost encounter; tune the two resources once runs exist and playtests show where tension is missing | Run scope |
+| D4 | How castles differ | **`CastleDefinition` ScriptableObject** per castle (layout prefab + castle HP + tower stats), with the layout (path, castle, towers, ground) split out of `GameplayRig` into a per-castle prefab. Architecture change — confirm before building | Run structure |
+| D5 | Scene flow | **One encounter scene, reloaded per castle.** `RunManager` (already persistent) carries run state; title/reward/run-end are UI panels, not extra scenes | Run structure |
+| D6 | First platform + orientation | ✅ **Decided 2026-09-24: PC first** — WebGL on itch.io + Windows; landscape. Android after alpha, iOS later. Designed touch-first (§8 rule) so the port stays cheap | Builds, UI design |
+| D7 | Destruction feedback scope for alpha | **Destruction moment only** (rubble swap + particles + shake + sound); persistent "wounded" fire/smoke post-alpha | Feedback work |
 
-### Design calls worth making soon (not urgent, raised this session — discuss before committing)
-- [ ] Wave budget as waves-cleared vs. elapsed time (§9 open question) — leaning waves: ties to the same spawn/despawn events the rest of the economy already keys off.
-- [ ] Cap initial run modifiers to the 3 named (blitz/siege/balanced) before authoring more, given §7's two-resource tuning risk.
-- [ ] Build the general status-effect system (§4 "Anticipated") before hardcoding a stun bool on `Tower` — avoids building it twice.
-- [ ] Build the path-blocking environment obstacle before flying units, so flyer balance is tuned against the real friction it's meant to solve.
-- [ ] Cheap temporary on-screen debug buttons (alongside `HandDebugUI`) to feel out the tap-to-command mobile flow before the girlfriend designs the real UI.
+### 12.3 Checklist to alpha, in order
+**Phase 0 — close out the current thread**
+- [ ] Rush test at tower range 12: Grunt Rush + Big Push (15 grunts, all 100 currency). If towers beat every affordable combo, pull range back (~10) or lower tower damage. [Kevin]
+- [ ] Commit + push the swarm card and tower retune. [Kevin]
+- [ ] Playtest the overlapping-projectile case (2+ towers on one weak monster) — what the pooling fix targets. [Kevin]
+- [ ] Cleanup: delete the one-shot editor scripts in `Assets/Editor/`, `_to_delete/` in both repos, Sandbox's leftover `TestMonster`. [Kevin]
 
-### Next big features (unchanged from §9 — listed here for visibility)
-- Real uGUI card hand UI (replaces `HandDebugUI`) — girlfriend / UI-UX.
-- Currency/pacing model — decide by feel.
-- Swarm card — pool stress test.
-- Flying units.
+**Phase 1 — the encounter feels complete (desktop is fine)**
+- [ ] D1: implement the chosen pacing model; currency UI to match. [Kevin]
+- [ ] Balance pass on one encounter with the new pacing; record in §5. Target the §5 shape: rushing wins, trickling loses, Swarm needs support. [Kevin]
+- [ ] World-space tower HP bars (so Attack Towers progress is visible) + a hit flash when the castle takes damage. [Kevin; bar style: Art/UI]
+- [ ] D7: tower destruction feedback v0 — replace "hide on death" with a rubble placeholder + particle burst + small camera shake + sound. [Art/UI: rubble, particles · Kevin: hook-up]
+- [ ] One new card: a **Brute** boss (1×, high HP/damage, slow, `unitScale` ~1.8). [New dev — good first task: pure data + playtest]
+- [ ] Placeholder SFX: tower shot, hit, monster death, castle hit, tower collapse. [Art/UI + Kevin]
+
+**Phase 2 — touch UI**
+- [ ] Figma: card hand, HUD (currency, castle HP, active order), order buttons, win/lose panels — at phone landscape size, following the touch-compatible rule (§8) even though the alpha ships on PC. [Art/UI]
+- [ ] Card hand in uGUI + TMP: tap to play, cost + affordability state, played card animates out, next draws in; delete `HandDebugUI`. [Kevin: logic · Art/UI: layout/styling]
+- [ ] On-screen **Focus Castle / Attack Towers** buttons showing the active order; C/T stay as dev-only shortcuts. [Kevin]
+- [ ] Safe-area-aware layout, checked at 16:9, 19.5:9 and 20:9 in the Game view. [Art/UI + Kevin]
+
+**Phase 3 — minimal run**
+- [ ] D4: split the per-castle layout out of `GameplayRig`; add `CastleDefinition` (`[CreateAssetMenu(menuName = "Castle Attack/Castle")]`). [Kevin]
+- [ ] Author 3 escalating castles — e.g. 1 = today's (2 towers, 40 HP); 2 = 3 towers, more HP; 3 = 4 tougher towers. Tune by play. [Kevin: layout · Art/UI: visual pass later]
+- [ ] `RunState` gains current castle index + run deck (starts from `StarterDeck`, grows); `HandManager` takes the run deck instead of a fixed `DeckDefinition`. [Kevin]
+- [ ] Encounter reports its result to `RunManager`: win → reward → next castle; loss → run over. `GameOverManager` stays the single arbiter, with run-level outcomes added in a fixed priority order (§4 warning). [Kevin]
+- [ ] Reward screen: pick 1 of 3 random cards from a `CardPool` asset, added to the run deck. [Kevin: logic · Art/UI: screen]
+- [ ] Title screen ("Start Run") + run-end screen (castles cleared, win/loss, "New Run"). Retry now means a new run; the R-key scene reload stays as a dev tool. [Kevin + Art/UI]
+
+**Phase 4 — shippable PC builds**
+- [ ] Windows build profile; a full run works outside the Editor. [New dev — good candidate]
+- [ ] WebGL build profile: compression set up (itch.io serves Brotli/gzip builds), check download size and load time. [New dev + Kevin]
+- [ ] itch.io page (restricted/private link for playtesters first); upload the WebGL build. [Kevin]
+- [ ] Input pass: a full run with the mouse only, no keyboard; dev keys kept out of player builds. If a touchscreen laptop is around, one run by touch too. [Kevin]
+- [ ] Performance in the browser and on Windows: 50-unit swarm + projectiles; Profiler for GC spikes and draw calls (shared materials, SRP Batcher). WebGL is the tighter budget. [Kevin + New dev]
+- [ ] *(Optional)* Android smoke test: build installs on a phone and a run is playable by touch — no performance work, just proof the touch rule held. [New dev]
+
+**Phase 5 — alpha polish + playtest**
+- [ ] Art swaps with the biggest readability payoff: castle model (castle first, §6), one monster, card frame. [Art/UI]
+- [ ] Clean tower re-export (drops the Unity-side scale hacks, §4). [Art/UI]
+- [ ] Bug bash: a full run with a clean Console. [everyone]
+- [ ] Playtest with 3–5 people who haven't seen it, via the itch.io link; note where they get confused; collect `[EncounterEnd]` logs (a Windows build keeps a `Player.log`; WebGL needs the browser console or an in-game export). [Kevin]
+- [ ] Tag the build `alpha-0.1` in git and make the itch.io page shareable (portfolio/CV link). [Kevin]
+
+### 12.4 After alpha (explicitly deferred)
+- **Two run resources** — horde strength + run-wide wave budget (§3). Open: waves-cleared vs. elapsed time (leaning waves-cleared — ties to the spawn/despawn events the economy already uses); partial replenishment rate.
+- **Run modifiers** — start with the 3 named (blitz/siege/balanced) before authoring more (§7 tuning risk).
+- **Stun** — build the general status-effect system (§4 "Anticipated") first; stun is its first effect.
+- **Flying units** — build the path-blocking obstacle first, so flyer balance is tuned against real friction.
+- **Per-card-group orders + Hold** (§8) — `MonsterMover.SourceCard` is already threaded through for this.
+- Castle-spawned defenders; destructible castle parts; castle progression within an encounter.
+- Persistent "wounded" fire/smoke on towers and the castle (D7).
+- **Mobile port** — Android first: build profile, performance pass on a mid-range phone (swarm sizes, draw calls), store setup; then iOS (needs a Mac). Mid-run resume becomes important here — mobile OSes kill backgrounded apps (§4 save/load).
+- Meta-progression; save/load + mid-run resume (§4 stance); more starter decks; final art.
+- *(Only if skybox/ambient get customized)* move Lighting-window settings onto a component on `SceneEnvironment` (§4 "Scene structure reference").
+
+### 12.5 Done log
+- **2026-09-23** — pooling fix (`MonsterMover.IsAlive`: stale projectile references were damaging pooled monsters twice); `sqrMagnitude` range checks; `ProjectilePool`; `RunManager` + `RunState` shell; card identity on monsters (`MonsterMover.SourceCard`); `[EncounterEnd]` logging. Commit `425ae6a`.
+- **2026-09-23/24** — map doubled; `PathVisualizer`; scenes synced into `GameplayRig` + new `SceneEnvironment` prefab. Commit `46d13c9`.
+- **2026-09-24** — Swarm card + `unitScale` override; both pools prewarmed; tower range 6 → 12 (§5).
+- **Incident note:** a hand-edited `ProjectilePool.prewarmPrefab` reference in `GameplayRig.prefab`'s YAML caused an `InvalidCastException` on scene start (fixed by clearing it + adding a try/catch around `Instantiate` in both `ProjectilePool` and `MonsterSpawner`'s `CreateNew`). Lesson: prefab asset references get assigned via the Inspector or the editor API, not hand-written YAML. *Root cause, found later:* a field referencing a prefab needs the fileID of the prefab's **root GameObject** (e.g. `TestMonster` = `1640811771736085792`); the hand-written `100100000` points at the prefab asset itself, which isn't a `GameObject` — hence the invalid cast.

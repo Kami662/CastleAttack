@@ -169,7 +169,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 953801e9a5ef6804fad1c2d397b24b90, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MonsterSpawner
-  prewarmPrefab: {fileID: 0}
+  prewarmPrefab: {fileID: 1640811771736085792, guid: 26c6b7f141024dd40b027f8719c05869, type: 3}
   prewarmCount: 200
 --- !u!1 &2555396458005252445
 GameObject:
@@ -810,7 +810,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9346212b58e766f4984a412970d137d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectilePool
-  prewarmPrefab: {fileID: 0}
+  prewarmPrefab: {fileID: 2628530211846932913, guid: 041503e87542be44a82cb891767e954a, type: 3}
   prewarmCount: 30
 --- !u!1 &5029543667180914068
 GameObject:

@@ -1,7 +1,9 @@
 # Castle Attack! — project context
 
 ## What this is
-A mobile **roguelite tower-defense with reversed roles**, Unity 6000.6.1f1 + URP, C#.
+A **roguelite tower-defense with reversed roles**, Unity 6000.6.1f1 + URP, C#.
+**Platform:** PC first (WebGL on itch.io + Windows) for the alpha, mobile (Android,
+then iOS) after — designed touch-first so the port stays cheap.
 The player is the **attacker**: play monster cards from a hand, send waves down a
 waypoint path at an AI-defended castle. Portfolio/CV project. Team of 3: Kevin
 (programming/design), his girlfriend (3D art + UI/UX), and a second dev joining.
@@ -58,26 +60,32 @@ IMGUI hand), MonsterSpawner, MonsterMover, Castle, Tower, Projectile, Projectile
 UnitCommander, UIManager, GameOverManager, RunManager, RunState (empty shell — see
 GDD §"Anticipated: run state must outlive the encounter scene"), PathVisualizer
 (Scene-view gizmo for the path, on `Path`). Editor/: GameplayRigSetup, TowerSetup,
-SceneSyncSetup (all one-shot, already run).
+SceneSyncSetup, SwarmCardSetup (all one-shot, already run).
 
 ## Working todo list
-`docs/game-design-document.md` §12 has a checkbox-style todo list (manual Editor
-steps outstanding, in-progress architecture work, flagged VFX/design items) — check
-it at the start of a session for what's actually next.
+`docs/game-design-document.md` §12 is the **road to a first playable alpha**: the alpha
+definition, open decisions (D1–D7, with recommendations), a phased checklist (0–5) with
+owners, and what's deliberately deferred until after alpha. Check it at the start of a
+session for what's actually next, and don't pull post-alpha work (§12.4) forward
+without asking.
 
 ## State
 **Done:** spawner + registry, data-driven cards, hand/deck (draw-on-play, reshuffle),
-object pooling, shared GameplayRig + Sandbox, retry loop (button + R key),
-the girlfriend's tower model in-game, per-card unit stat overrides.
+object pooling (monsters and projectiles, both prewarmed), shared GameplayRig +
+SceneEnvironment prefabs, retry loop (button + R key), the girlfriend's tower model
+in-game, per-card unit stat overrides (incl. `unitScale`), map doubled, swarm card
+(50× — runs clean, currently too strong).
 
 **In flight:** destructible towers (Tower HP 100 / `TakeDamage` / `IsDestroyed`),
-visible `Projectile` (placeholder sphere, arrow art later, not pooled),
+visible `Projectile` (placeholder sphere, arrow art later),
 `UnitCommander` global order FocusCastle/AttackTowers on dev keys C/T, with
 `MonsterMover` diverting to the nearest standing tower on AttackTowers.
 
-**Next:** real uGUI card hand UI (replaces HandDebugUI), currency/pacing model
+**Next:** GDD §12 phase 0 — check the rush still wins now that tower range is 12
+(GDD §5 — towers are ~2× stronger than the validated v1 balance). Then phase 1:
+pacing model (D1). Longer term: real uGUI card hand UI (replaces HandDebugUI), currency/pacing model
 (decide by feel — fixed pool vs. regenerating income is the big open question),
-swarm card as a pool stress test, **flying units** (bypass the waypoint path;
+**flying units** (bypass the waypoint path;
 weaker than ground units; the ground path gets blocked by environment later so
 flyers become a deck-building decision), tower-destruction VFX.
 
@@ -94,7 +102,10 @@ flyers become a deck-building decision), tower-destruction VFX.
   Blender export that didn't tick "Selected Objects" brings the whole scene in —
   an embedded camera will render over your game view. Export recipe is in the art
   repo README and in §11 of the design doc.
-- UI is uGUI + TextMeshPro. Mobile is the target; keyboard input is dev-only.
+- UI is uGUI + TextMeshPro. **Touch-compatible rule** (GDD §8): every action is one
+  tap/click on a big target; nothing hover-only; no right-click/drag/long-press-only
+  actions; keyboard shortcuts are dev-only and stay out of player builds. PC ships
+  first, but UI must work unchanged by touch.
 - Git LFS tracks `*.fbx`; pushes and art commits run from Kevin's machine.
 - Windows + PowerShell 5 — no `&&` between commands.
 - Run `setup-dev.ps1` / `setup-dev.sh` once after cloning (Unity SmartMerge + LFS).

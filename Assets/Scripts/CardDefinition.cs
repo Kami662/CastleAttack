@@ -50,4 +50,9 @@ public class CardDefinition : ScriptableObject
     [Min(0.1f)]
     [Tooltip("Move speed (only used when Override Stats is on). Lower = slower, tankier feel.")]
     public float unitSpeed = 3f;
+
+    [Min(0.1f)]
+    [Tooltip("Size multiplier on the monster prefab (only used when Override Stats is on). " +
+             "Small swarm units read as a mass; a big boss reads as a boss.")]
+    public float unitScale = 1f;
 }

@@ -120,7 +120,7 @@ public class MonsterSpawner : MonoBehaviour
             {
                 m.SetSourceCard(card);
                 if (card.overrideStats)
-                    m.ApplyStats(card.unitMaxHP, card.unitDamage, card.unitSpeed);
+                    m.ApplyStats(card.unitMaxHP, card.unitDamage, card.unitSpeed, card.unitScale);
             }
 
             if (card.spawnInterval > 0f && i < count - 1)
