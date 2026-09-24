@@ -136,6 +136,15 @@ public class MonsterSpawner : MonoBehaviour
     {
         if (mover == null) return;
 
+        // Despawning an already-pooled monster would enqueue it twice, and two
+        // later spawns would then share one GameObject.
+        if (!mover.gameObject.activeSelf)
+        {
+            Debug.LogWarning($"MonsterSpawner: Despawn called on '{mover.name}', which is already " +
+                             "despawned. Ignored.");
+            return;
+        }
+
         mover.gameObject.SetActive(false); // OnDisable -> Unregister
 
         if (mover.SourcePrefab != null)

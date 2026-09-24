@@ -207,8 +207,7 @@ A unit class that can **leave the waypoint path** once ordered and head straight
 - **`UnitCommander.cs`** — holds the horde's single **global order** (`FocusCastle` / `AttackTowers`) as a static, toggled by dev keys C / T. The mobile per-card-group selection (§8) will replace the keys later without changing how `MonsterMover` reads the order. Resets to FocusCastle on scene load.
 - **`UIManager.cs`** — pushes live currency/castle-HP values to TextMeshPro text every frame.
 - **`GameOverManager.cs`** — the single authority on encounter win/lose state (below). Its lose-check reads `GameManager.CanPlayAnyCard` and `MonsterSpawner.ActiveMonsters.Count`. Also owns `RestartGame()`.
-- **`Assets/Editor/GameplayRigSetup.cs`** — one-time **editor** utility (menu **Castle Attack ▸ Setup**) that built the GameplayRig prefab + Sandbox scene. Editor-only; safe to delete.
-- **`Assets/Editor/TowerSetup.cs`** — one-time **editor** utility (menu **Castle Attack ▸ Setup ▸ 3**) that placed the tower model with `Tower.cs` and saved `Tower.prefab`. Editor-only; safe to delete.
+- **One-time editor utilities (deleted 2026-09-24, still in git history):** `GameplayRigSetup` (built the GameplayRig prefab + Sandbox scene), `TowerSetup` (placed the tower model and saved `Tower.prefab`), `SceneSyncSetup` (moved the environment into prefabs) and `SwarmCardSetup` (created the Swarm card and set the pool prewarm). New one-shot setup scripts go in `Assets/Editor/` under the **Castle Attack ▸ Setup** menu.
 
 ### Design decision: centralized win/lose arbitration
 Originally, `GameManager` (lose) and `Castle` (win) each independently decided game-over state in their own `Update()`. Because Unity does not guarantee execution order between scripts, this produced a real race condition: in some frames the lose-check fired and locked in `gameOver = true` before the win-check ran, showing "YOU LOSE" even though the castle had just been destroyed.
@@ -246,7 +245,7 @@ Play is driven by a **hand of cards drawn from a deck**, with a placeholder UI. 
 Monsters are reused instead of instantiated/destroyed — no per-unit churn or GC hitch once the pool is warm. `MonsterSpawner` keeps one pool per prefab; `Spawn` reuses/instantiates, `Despawn` deactivates + enqueues. **`MonsterMover.OnSpawn` is the correctness core:** `Start()`/field initializers don't run on a reused object, so `OnSpawn` re-sets HP, waypoint index, `enabled`, **and now the default stats** on every spawn — anything that becomes per-life state (status effects, buffs, stat overrides) must reset there. Verified: a Grunt Rush (5×) after a death spawned exactly 5 (1 reused + 4 new), all full-HP from the spawn point; 0 errors.
 
 ### Built: shared GameplayRig prefab + Sandbox scene — done 2026-09-18
-The interdependent gameplay/UI objects are grouped under one **`GameplayRig`** prefab (`Assets/Prefabs/GameplayRig.prefab`); `SampleScene` (canonical) and `Sandbox` (scratch) both instance it, so a wiring change is made **once, in the prefab**, and both scenes inherit it. Both scenes are in Build Settings. **Team rule: edit the prefab, not a scene's copy.** The **tower** (below) was later added into this prefab, so both scenes have it. (A leftover inactive `TestMonster` still sits at Sandbox's scene root — harmless scratch; clean up whenever.)
+The interdependent gameplay/UI objects are grouped under one **`GameplayRig`** prefab (`Assets/Prefabs/GameplayRig.prefab`); `SampleScene` (canonical) and `Sandbox` (scratch) both instance it, so a wiring change is made **once, in the prefab**, and both scenes inherit it. Both scenes are in Build Settings. **Team rule: edit the prefab, not a scene's copy.** The **tower** (below) was later added into this prefab, so both scenes have it. (The leftover `TestMonster` that sat at Sandbox's scene root was removed on 2026-09-24.)
 
 **Update 2026-09-24 — environment moved into prefabs too.** Environment originally stayed per-scene, and it drifted: after the map was doubled, Sandbox kept the old ground size and camera, never got `RunManager`, and missed scene-only rig overrides (tower placement, the `PathVisualizer`). Fix: both scenes now contain **only prefab instances**. The ground moved into `GameplayRig` (its size follows the path layout the rig already owns), and a new **`SceneEnvironment`** prefab holds the camera, light, global volume and `RunManager`. `RunManager` sits inside it as a child and detaches itself before `DontDestroyOnLoad`, so it persists without dragging the camera/light along. Done by a one-shot editor script (`Castle Attack ▸ Setup ▸ 4. Sync scenes`). **Rules:** if both scenes need it, it goes in a prefab; no overrides on the scene instances — apply or revert them. Only per-scene Lighting settings (skybox, ambient) can't be prefabbed.
 
@@ -257,7 +256,7 @@ The quick answer to "where do I change X, and does it reach both scenes?"
 |---|---|---|---|
 | **`GameplayRig` prefab** | Managers (`GameManager`, `HandManager` + `HandDebugUI`, `MonsterSpawner`, `ProjectilePool`, `UnitCommander`, `GameOverManager`, `UIManager`), `Canvas` UI (currency, castle HP, game-over text, retry button), `EventSystem`, `Spawn_Marker`, `Path` + 5 waypoints + `PathVisualizer`, `Castle_Placeholder`, both towers (`Tower_Guard`, `Tower_Guard (1)` — nested `Tower.prefab`), `Ground` | Open the prefab (double-click it, or the arrow next to it in the Hierarchy) | Yes, automatically |
 | **`SceneEnvironment` prefab** | `Main Camera`, `Directional Light`, `Global Volume` (post-processing), `RunManager` | Same — open the prefab | Yes, automatically |
-| **Each scene file (`.unity`)** | **Lighting window ▸ Environment**: skybox, ambient light, fog, reflections; lightmap/baked-lighting settings. Sandbox also holds its own scratch objects (e.g. `TestMonster`) | Window ▸ Rendering ▸ Lighting, **once per scene** | **No — change it in both scenes by hand** |
+| **Each scene file (`.unity`)** | **Lighting window ▸ Environment**: skybox, ambient light, fog, reflections; lightmap/baked-lighting settings. Sandbox may also hold its own scratch objects (none right now) | Window ▸ Rendering ▸ Lighting, **once per scene** | **No — change it in both scenes by hand** |
 | **Project settings** | Build Settings scene list (`SampleScene` 0, `Sandbox` 1), Input System mode, URP asset | Edit ▸ Project Settings / File ▸ Build Profiles | Project-wide (saved on *project* save) |
 
 **What still needs doing per scene:**
@@ -336,7 +335,7 @@ Starter deck in the current build: 3× Lone Grunt, 2× Grunt Rush, 1× Big Push,
 - **Swarm alone:** no longer wins — 29 of 50 got through (towers killed 21), castle left at 11/40.
 - **Lone Grunt:** dies ~7s in, at the first tower — trickling still loses. ✅
 - Swarm + Lone Grunt (the whole 100 currency) → loss at 11/40, 0 errors.
-- Not yet tested: whether Grunt Rush + Big Push (15 grunts) still wins, i.e. whether rushing still beats the towers. That's the next thing to check.
+- **Rush test (Big Push + Grunt Rush, 15 grunts, all 100 currency, Focus Castle): lost.** Only 2 of 15 reached the castle (40 → 20 HP); the towers killed 13. The two cards were played ~4s apart, which spread the stream and favored the towers a little, but 2 of the needed 4 is not close. **At range 12, under the fixed 100 pool, the best affordable rush loses — towers beat every affordable combo.** Note that the hybrid budget's holding cap (100) also caps a single burst at 100, so under the new pacing a winning rush will have to be several overlapping bursts, or go through Attack Towers + bounties first.
 
 **Towers & attacking them (new, first-pass — untuned):** Tower `maxHealth` 100; fires a visible projectile (speed ~20). A monster ordered onto a tower: `attackRange` 1.5, `attacksPerSecond` 1, dealing its `damage` per hit. So one grunt (10 dmg) takes ~10s to fell a 100-HP tower alone; a group is much faster.
 
@@ -503,7 +502,7 @@ So every surface (claude.ai chat, **Claude Code**) and the incoming developer sh
 - **SSH keys are set up** — pushes work without a personal access token.
 - **Pushed through `4125272`:** data-driven cards, hand & deck, object pooling, GameplayRig + Sandbox.
 - **Committed, not yet pushed:** this `docs/` copy + `CLAUDE.md`.
-- **Still uncommitted in the working tree:** the girlfriend's tower art (`Assets/Art/`), `Tower.prefab`, `TowerSetup.cs`, per-card unit variety (`CardDefinition` / `MonsterSpawner` / `MonsterMover`), and the destructible-tower / projectile / unit-command scripts. These need a commit from Kevin's machine (LFS handles the `.fbx`).
+- **Update 2026-09-24:** everything above has since been committed and pushed (tower art and destructible towers in `341b314`; later work in `425ae6a`, `46d13c9`, `f9bd0ce` and after — see §12.5).
 - **Known snag:** `Assets/Scripts/UnitCommader.cs` is misspelled — the class inside is `UnitCommander`, and Unity requires the filename to match the MonoBehaviour class name or the component cannot be added. Rename the file in the Unity Project window.
 - **Cleanup:** `_to_delete/` in each repo root holds stale git lock files; delete when convenient.
 
@@ -536,14 +535,14 @@ The working checklist, organized around one milestone. §9 stays the place for d
 - **If behind, cut in this order:** castle ruins, props and ground texture → Tank card → smoldering rubble → the reward trade step → the win bonuses → a 2-castle run instead of 3. Everything else is the core of the alpha.
 
 **Phase 0 — close out the current thread** · by 28 Sep
-- [ ] Rush test at tower range 12: Grunt Rush + Big Push (15 grunts, all 100 currency). If towers beat every affordable combo, pull range back (~10) or lower tower damage. [Kevin]
+- [x] Rush test at tower range 12: **lost** — 2 of 15 grunts got through (§5). Decision (2026-09-24): keep range 12 for now and retune in the Phase 1 balance pass together with the new pacing, since tuning against the fixed pool that's being replaced would be thrown away. [Kevin]
 - [ ] Commit + push the swarm card and tower retune. [Kevin]
-- [ ] Playtest the overlapping-projectile case (2+ towers on one weak monster) — what the pooling fix targets. [Kevin]
-- [ ] Cleanup: delete the one-shot editor scripts in `Assets/Editor/`, `_to_delete/` in both repos, Sandbox's leftover `TestMonster`. [Kevin]
+- [x] Overlapping-projectile playtest — **passed** (2026-09-24). The normal layout never overlaps shots (1 shot/s, ≤ 0.6s flight, no shared tower coverage), so one tower's fire rate was raised to 5/s in Play mode only: several shots in flight per target, 12 grunts killed with constant overkill, no errors, spawning afterwards normal. `MonsterSpawner.Despawn` now also ignores (and warns about) despawning an already-pooled monster — the step behind the old corruption — and it never fired. [Kevin]
+- [x] Cleanup (2026-09-24): `_to_delete/` in both repos (sent to the Recycle Bin), Sandbox's leftover `TestMonster` removed, and the one-shot editor scripts deleted (`GameplayRigSetup`, `TowerSetup`, `SceneSyncSetup`, `SwarmCardSetup` — still in git history). **Phase 0 complete.** [Kevin]
 
 **Phase 1 — the encounter feels complete (desktop is fine)** · 29 Sep – 19 Oct
 - [ ] D1: implement the hybrid budget (§3 "Encounter pacing") — regeneration + holding cap + encounter budget in `GameManager`; tower bounty paid from `Tower`'s destroy path; `GameOverManager` lose check gains "budget spent"; HUD shows currency, cap and budget left; a "+40" bounty pop-up where a tower falls; `[EncounterEnd]` log adds budget left and bounties earned. [Kevin]
-- [ ] Balance pass on one encounter with the new pacing; record in §5. Target the §5 shape: rushing wins, trickling loses, Swarm needs support. [Kevin]
+- [ ] Balance pass on one encounter with the new pacing; record in §5. Tune tower strength (range 12 currently beats every affordable rush — §5) together with the cap, regeneration, budget and bounty. **Explicit targets:** a well-timed rush wins, trickling loses, Swarm needs support. Then check castles 2 and 3 are still beatable within the same budget. [Kevin]
 - [ ] World-space tower HP bars (so Attack Towers progress is visible) + a hit flash when the castle takes damage. [Kevin; bar style: Art/UI]
 - [ ] D7: destruction feedback — replace "hide on death" with the rubble model + dust/debris burst + small camera shake + sound; smoke and fire once a tower or the castle is below half HP (a threshold hook in `Tower.TakeDamage` / `Castle.TakeDamage`); destroyed towers keep a smoldering loop on the rubble. [Art/UI: rubble, particles · Kevin: hook-up]
 - [ ] New cards from the roster (§3 "Alpha run rules"): **Brute**, **Tank** and **Runner** as pure data (existing overrides). [New dev — good first task: data + playtest]

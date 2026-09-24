@@ -47,7 +47,7 @@ decisions. It is mirrored from a claude.ai Project doc, which is the source of t
     `RunManager` (which detaches itself at runtime for `DontDestroyOnLoad`).
   - **Rules:** if both scenes need it, it goes in a prefab, never only in a scene.
     **Edit the prefab, not a scene's copy** — no overrides on the scene instances
-    (apply or revert them). Sandbox may add scratch objects on top (e.g. `TestMonster`).
+    (apply or revert them). Sandbox may add scratch objects on top (none right now).
   - Per-scene Lighting settings (skybox, ambient, fog) can't be prefabbed and still
     live in each scene — change them in **both**. Full what-lives-where table: GDD §4
     "Scene structure reference".
@@ -59,8 +59,8 @@ GameManager, CardDefinition, DeckDefinition, HandManager, HandDebugUI (throwaway
 IMGUI hand), MonsterSpawner, MonsterMover, Castle, Tower, Projectile, ProjectilePool,
 UnitCommander, UIManager, GameOverManager, RunManager, RunState (empty shell — see
 GDD §"Anticipated: run state must outlive the encounter scene"), PathVisualizer
-(Scene-view gizmo for the path, on `Path`). Editor/: GameplayRigSetup, TowerSetup,
-SceneSyncSetup, SwarmCardSetup (all one-shot, already run).
+(Scene-view gizmo for the path, on `Path`). No editor scripts right now — the
+one-shot setup scripts were deleted after running (still in git history).
 
 ## Working todo list
 `docs/game-design-document.md` §12 is the **road to a first playable alpha**: the alpha
@@ -81,9 +81,9 @@ visible `Projectile` (placeholder sphere, arrow art later),
 `UnitCommander` global order FocusCastle/AttackTowers on dev keys C/T, with
 `MonsterMover` diverting to the nearest standing tower on AttackTowers.
 
-**Next:** GDD §12 phase 0 — check the rush still wins now that tower range is 12
-(GDD §5 — towers are ~2× stronger than the validated v1 balance). Then phase 1,
-starting with the hybrid-budget pacing (D1, GDD §3 "Encounter pacing"). All alpha
+**Next:** GDD §12 phase 1, starting with the hybrid-budget pacing (D1, GDD §3
+"Encounter pacing"). Phase 0 is done. The rush test at tower range 12 lost — towers
+currently beat every affordable combo; retuning is part of the phase 1 balance pass. All alpha
 decisions D1–D7 are made (GDD §12.2); flying units, stun, run resources and the
 mobile port are post-alpha (§12.4).
 
