@@ -43,7 +43,7 @@ The single-battle loop, which is fully implemented and tuned (see §5). In the r
    - **Lose:** the player can no longer afford to play any card in hand and no monsters remain alive on the field.
 6. On either outcome the game freezes and a **Retry** action reloads the encounter (see §4).
 
-A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system"), and the player can now issue a global **order** to the horde — *focus the castle* (default) or *attack the towers* — the first slice of the unit-command system (§3, §4). Current input is keyboard for desktop testing only (number keys to play cards; C / T for orders) — see §8 for the actual touch-first input design. **The key open pacing question is whether currency regenerates during an encounter (a fixed pool spent down vs. a regenerating income), which — together with the card-draw cadence — defines the moment-to-moment feel (§9).**
+A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system"), and the player can now issue a global **order** to the horde — *focus the castle* (default) or *attack the towers* — the first slice of the unit-command system (§3, §4). Current input is keyboard for desktop testing only (number keys to play cards; C / T for orders) — see §8 for the actual touch-first input design. **Pacing is decided (2026-09-24): a hybrid budget** — currency regenerates up to a holding cap, each encounter has a finite regeneration budget, and destroying a tower pays a bounty (§3, "Encounter pacing"). Not built yet; the current build still uses the fixed 100 pool.
 
 ## 3. Longer-term Design (planned, not yet built)
 
@@ -57,6 +57,45 @@ A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system")
   - It also largely dissolves the deferred deck-builder question (see Roadmap): the player builds a deck *by playing*, which is more interesting than assembling one in a menu beforehand. A menu deck builder may never be needed.
 - **Between-castle choices are the run's texture.** After each cleared castle the player makes a meaningful choice — a card to add, a permanent buff, a resource trade. Exact menu of options undecided (§9).
 - **Escalation:** later castles in a run have more towers, tougher towers, and — on some — castle-spawned defending units (see Castle Defenses).
+
+### Encounter pacing (hybrid budget) — decided 2026-09-24, not yet built
+- **Regeneration:** currency ticks up at a steady rate, up to a **holding cap** — you can't bank more than the cap, so one giant stockpiled push is limited.
+- **Encounter budget:** each encounter has a total amount regeneration can produce; once it's used up, regeneration stops. The budget **keeps draining while you sit at the cap** (overflow is wasted — use it or lose it), so encounters stay about 2 minutes even if someone plays passively.
+- **Tower bounty:** destroying a tower pays a one-off bounty, **on top of both the cap and the budget** — aggression directly extends your encounter. This gives the Attack Towers order a clear payoff in the alpha and makes tearing down defenses feel earned (pillar 1). No bounty for castle damage for now (castle breach milestones were considered — a later option, tied to destructible castle parts).
+- **Lose:** budget spent **and** no affordable card **and** nothing alive (the existing check plus "budget spent"). Win is unchanged (castle destroyed).
+- **Card draw:** stays draw-on-play.
+- **Target length:** about **2 minutes per encounter** → a 3-castle alpha run takes about 6–8 minutes.
+- **Starting numbers (tune in the Phase 1 balance pass):** start 50 · +4/s · cap 100 · budget 360 (≈90s of regeneration) · tower bounty 40. Castle HP and tower counts will need to rise to match — roughly 5× more currency per encounter than today's 100.
+- **Why this shape:** it keeps the validated rush-vs-trickle tension (§5), now as "save up vs. spend now"; the finite budget keeps the current lose condition working; and the per-encounter budget is the natural precursor of the run-wide wave budget below (post-alpha).
+- **HUD needs:** current currency, the cap, and budget remaining.
+
+### Alpha run rules — decided 2026-09-24, not yet built
+- **One lost castle ends the run** — no second chance. A run is only 6–8 minutes, so starting over is cheap and every castle stays tense.
+- **Nothing carries between castles except the deck** (no currency, no HP). The two run resources below are post-alpha.
+- **After each cleared castle** (castles 1 and 2 — beating castle 3 wins the run, so the reward screen appears twice per run):
+  - **Pick 1 of 3** new cards from the card pool, added to the run deck.
+  - **Trade 1 (optional):** give up one card from your deck for a **random** different card from the pool — a gamble, mostly useful for getting rid of a card you don't want.
+- **Win bonuses** (shown on the reward screen):
+  - **All towers destroyed** → pick from **4** instead of 3.
+  - **Won with budget left** (threshold TBD, e.g. ≥ 25%) → the offer includes a **rare** card. Needs a rarity tier on `CardDefinition`.
+- **Castles:** 3 per run, always in the same order (1 → 2 → 3). Each has **its own layout** (its own single path, castle and tower placement) chosen by a `CastleDefinition` asset, which also sets **castle HP** and **tower strength** (HP / damage / range multipliers). **Pacing numbers stay global** — every castle has the same currency budget, so later castles' extra HP and tougher towers must still be beatable within it (check in the balance pass). Per-castle reward pools, random castle order and multi-path castles are post-alpha.
+- **Card roster (decided 2026-09-24): 8 cards**, all using the one grunt model with stat/scale overrides. First-pass numbers, tuned against the new pacing in the Phase 1 balance pass:
+
+  | Card | Role | Summons | First-pass stats | Cost |
+  |---|---|---|---|---|
+  | Lone Grunt | cheap chip damage | 1× | default grunt | 20 |
+  | Grunt Rush | the validated rush | 5× | default grunt | 40 |
+  | Big Push | big stream | 10× | default grunt | 60 |
+  | Swarm | flood | 50× | HP 5, dmg 1, speed 4, scale 0.5 | 80 |
+  | **Brute** | damage boss | 1× | HP 300, dmg 30, speed 1.5, scale 1.8 | 70 |
+  | **Tank** | damage sponge — soaks tower fire so others slip past | 1× | HP 400, dmg 5, speed 1.2, scale 1.5 | 50 |
+  | **Sapper** | tower breaker — starts a "demolition" deck (bounties, destroy-every-tower bonus) | 3× | HP 25, dmg 10, **×4 damage vs. towers** | 50 |
+  | **Runner** | speed — races past towers, starts a "speed" deck (win-with-budget-left bonus) | 4× | HP 15, dmg 5, speed 7, scale 0.8 | 40 |
+
+  Sapper needs one new card stat (bonus damage vs. towers), reset per life in `MonsterMover.OnSpawn` like the other overrides. On the field the three new unit types need a visual tell beyond size (a prop or color) — an art item.
+- **Starter deck (decided 2026-09-24): 10 cards** — 4× Lone Grunt, 3× Grunt Rush, 2× Big Push, plus **1 wildcard slot**: a random pick from Sapper, Runner or Tank at the start of each run. Decks aim for **about 10 cards** so draws vary more (hands rarely repeat). At ~14 cards played per castle under the new pacing, you cycle the deck about once per castle, so a newly won card shows up once or twice per castle. The wildcard makes each run lean a different way from castle 1 — demolition (Sapper: Attack Towers + bounties), speed (Runner: the budget-left bonus) or soak (Tank) — while the 9 fixed cards keep balance predictable. It varies the starting deck, not the rules (pillar 3). Future starter decks (post-alpha) also target ~10.
+- **Reward pool:** Swarm and Brute (**rare** — offered via the budget-left bonus), Tank, Runner and more Sappers (common). Swarm leaves the starter deck — it was only there for the pool stress test. With ~10-card decks each single reward matters less than in a 6-card deck, which is part of why the rares should feel strong and the trade step stays.
+- **Why the bonuses:** they pull in opposite directions — thorough (spend units and time to raze everything) vs. fast (win before the budget runs down). That's a cheap preview of the horde-vs-wave tension the run resources will formalize; alpha playtests show whether the full system is worth building.
 
 ### Run Resources — decided
 **Decision: two persistent resources deplete across a run — horde strength and a run-wide wave budget.** Both always exist; what varies between runs is how much of each you start with and how fast each drains (see Run Modifiers below).
@@ -289,7 +328,7 @@ Stun is the first status effect, not the last — slows, DoT, armor reduction fo
 | Big Push | 60 | 10× | 0.2s |
 | Swarm | 80 | 50× (HP 5, dmg 1, speed 4, scale 0.5) | 0.05s |
 
-Starter deck: 3× Lone Grunt, 2× Grunt Rush, 1× Big Push, 1× Swarm (7 cards). Cards may also carry stat overrides (off by default; Swarm uses them).
+Starter deck in the current build: 3× Lone Grunt, 2× Grunt Rush, 1× Big Push, 1× Swarm (7 cards). **Planned for the alpha** (decided 2026-09-24, not yet applied): 4× Lone Grunt, 3× Grunt Rush, 2× Big Push + 1 random wildcard (Sapper, Runner or Tank) — 10 cards — with Swarm moving to the reward pool (§3 "Alpha run rules"). Cards may also carry stat overrides (off by default; Swarm uses them).
 
 **Swarm card (2026-09-24, first pass — untuned):** 50 tiny, fragile units — one tower hit kills each, 1 damage each at the castle. First playtest on the doubled map: **Swarm alone won** (40 of 50 reached the castle, exactly its 40 HP) in 36s, 0 errors — a clean pool stress test, but too strong. The main reason is tower coverage, not the card: after the map doubled, `Tower_Guard` at (6,0,6) is exactly 6 units (its range) from the nearest path point, so it barely fires, and `Tower_Guard (1)` covers only ~10 of the path's 96 units. Retune tower range/placement for the bigger map before judging Swarm's numbers.
 
@@ -371,7 +410,6 @@ Parameters still to tune: tower HP, monster attack rate/range, stun duration & s
     - **Tower-destruction VFX** — rubble/collapse + sound (art track).
 
 ### Open questions
-- **Pacing / currency-regeneration model + card-draw cadence.** Currently fixed pool + draw-on-play. Does currency regenerate (Clash-Royale income)? Do cards draw on a timer? Decide by *playing*. (Lean, unconfirmed: income + small hand + draw-on-play.)
 - Hand size and mulligan rules (default 3; tune by feel).
 - **Flying units:** HP/damage balance vs. ground units, and how "order flyers to bypass the blocked path" fits the command system.
 - **Tower HP and monster attack rates** — first-pass 100 HP / 1 hit-per-sec; tune once destructible towers are in play.
@@ -392,6 +430,15 @@ Parameters still to tune: tower HP, monster attack rate/range, stun duration & s
 - Where shared cloud storage for source art lives (§11).
 
 ### Resolved
+- ~~Pacing: fixed pool or regenerating income? Card-draw cadence?~~ → **hybrid budget**: regeneration up to a holding cap, a finite per-encounter budget, tower bounties paid on top; draw-on-play stays; ~2-minute encounters (§3 "Encounter pacing"). Decided 2026-09-24.
+- ~~Starter deck size and contents?~~ → ~10 cards per deck for more draw variety; alpha starter deck 4× Lone Grunt, 3× Grunt Rush, 2× Big Push + a random wildcard (Sapper, Runner or Tank) per run for run-to-run variety; Swarm and Brute are rare rewards. Decided 2026-09-24.
+- ~~Alpha card roster?~~ → 8 cards: the current 4 + Brute, Tank, Sapper, Runner (§3 "Alpha run rules"). Decided 2026-09-24.
+- ~~Alpha target date?~~ → end of 2026, with a checkpoint on 19 October and a cut order if behind (§12.3). Decided 2026-09-24.
+- ~~Scene flow between title, castles, rewards and run end?~~ → a menu scene (title + run-end, first scene) + the encounter scene reloaded per castle, with the reward screen as a panel between castles. Decided 2026-09-24.
+- ~~Destruction feedback / fire and smoke scope?~~ → collapse moment + smoke/fire below half HP (towers and castle) + smoldering rubble, all in the alpha. Decided 2026-09-24.
+- ~~How do castles differ, and in what order?~~ → own layout per castle (one path each), `CastleDefinition` sets castle HP + tower strength, fixed order 1 → 2 → 3, pacing global (§3 "Alpha run rules"). Decided 2026-09-24.
+- ~~Who is the alpha for?~~ → private first (restricted itch.io link for playtesters), then a polished public build for the portfolio. Decided 2026-09-24.
+- ~~Run stakes for the alpha / between-castle choice?~~ → one lost castle ends the run; reward = pick 1 of 3 + trade 1 card; bonuses for razing all towers (4 choices) and winning with budget left (a rare offered). Run resources post-alpha (§3 "Alpha run rules"). Decided 2026-09-24.
 - ~~Mobile only, PC only, or both?~~ → **PC first** (WebGL on itch.io + Windows) for alpha/v1, **mobile after** (Android, then iOS); **designed touch-first** so the port stays cheap (§1 Platform, §8 rule). Decided 2026-09-24.
 - ~~Starting deck: random, or fixed pre-built?~~ → **pre-made starter decks** (a `DeckDefinition`), grown during the run.
 - ~~Towers destructible, suppressible, or rebuilding?~~ → **permanently destructible** within an encounter (built 2026-09-22/23); the run economy balances it.
@@ -464,54 +511,63 @@ So every surface (claude.ai chat, **Claude Code**) and the incoming developer sh
 
 The working checklist, organized around one milestone. §9 stays the place for design rationale and open questions; this is what to actually do next, in order. Owners: **[Kevin]** code/design · **[Art/UI]** 3D art + UI/UX · **[New dev]** programming support. Tick items as they land; fold decisions back into the relevant § once made.
 
-### 12.1 What "first playable alpha" means (proposed — confirm)
+### 12.1 What "first playable alpha" means
 > Someone who has never seen the game opens an **itch.io link in their browser** (or runs the Windows build), starts a run, plays through **3 escalating castles** with the mouse alone (or touch), picks a new card after each castle, and reaches a run-win or run-loss screen — without anyone explaining the controls.
 
 **In scope:** a decided pacing model · a card hand + order buttons (global Focus Castle / Attack Towers) that follow the touch-compatible rule (§8) · readable feedback (tower HP, tower destruction, castle hits) · a 3-castle run with a card reward between castles · title, reward and run-end screens · ~6 cards, 1 starter deck · WebGL + Windows builds that run a 50-unit swarm smoothly. Placeholder art is fine unless it hurts readability.
 
 **Out of scope (post-alpha, §12.4):** mobile builds (Android, iOS), the two run resources, run modifiers, stun/status effects, flying units, per-card-group orders + Hold, castle-spawned defenders, meta-progression, save/load, extra starter decks, final art.
 
-### 12.2 Decisions needed (recommendation in bold — Kevin decides)
+### 12.2 Decisions (all made 2026-09-24)
 | # | Decision | Recommendation | Blocks |
 |---|---|---|---|
-| D1 | Pacing: fixed currency pool vs. regenerating income; card-draw cadence | **Prototype regenerating income** (the current lean, §9) next to the fixed pool, play both for a session, keep one | Balance pass, castle tuning |
-| D2 | Alpha run length | **3 castles** | Castle authoring |
-| D3 | Run resources (horde strength + wave budget) in the alpha? | **Post-alpha.** Alpha run ends on the first lost encounter; tune the two resources once runs exist and playtests show where tension is missing | Run scope |
-| D4 | How castles differ | **`CastleDefinition` ScriptableObject** per castle (layout prefab + castle HP + tower stats), with the layout (path, castle, towers, ground) split out of `GameplayRig` into a per-castle prefab. Architecture change — confirm before building | Run structure |
-| D5 | Scene flow | **One encounter scene, reloaded per castle.** `RunManager` (already persistent) carries run state; title/reward/run-end are UI panels, not extra scenes | Run structure |
+| D1 | Pacing: fixed currency pool vs. regenerating income; card-draw cadence | ✅ **Decided 2026-09-24: hybrid budget** — regeneration up to a holding cap, finite per-encounter budget, tower bounty on top; draw-on-play; ~2-min encounters (§3 "Encounter pacing") | Balance pass, castle tuning |
+| D2 | Alpha run length | ✅ **Decided 2026-09-24: 3 castles**, fixed order | Castle authoring |
+| D3 | Run resources (horde strength + wave budget) in the alpha? | ✅ **Decided 2026-09-24: post-alpha.** One lost castle ends the run; only the deck carries over. Reward: pick 1 of 3 + trade 1 card; bonuses for razing every tower (4 choices) and winning with budget left (a rare in the offer) (§3 "Alpha run rules") | Run scope |
+| D4 | How castles differ | ✅ **Decided 2026-09-24:** a per-castle layout prefab (path, castle, towers, ground, road, spawn portal) split out of `GameplayRig`, chosen by a `CastleDefinition` asset that also sets castle HP and tower strength. One path per castle; fixed order; pacing stays global (§3 "Alpha run rules") | Run structure |
+| D5 | Scene flow | ✅ **Decided 2026-09-24: a menu scene + the encounter scene.** The menu scene (title + run-end) is the game's first scene; the encounter scene reloads once per castle with the next layout, and the reward screen is a panel inside it between castles. `RunManager` (persistent) carries the run. The encounter scenes still include `RunManager` via `SceneEnvironment`, so pressing Play in SampleScene/Sandbox keeps working without the menu | Run structure |
 | D6 | First platform + orientation | ✅ **Decided 2026-09-24: PC first** — WebGL on itch.io + Windows; landscape. Android after alpha, iOS later. Designed touch-first (§8 rule) so the port stays cheap | Builds, UI design |
-| D7 | Destruction feedback scope for alpha | **Destruction moment only** (rubble swap + particles + shake + sound); persistent "wounded" fire/smoke post-alpha | Feedback work |
+| D7 | Destruction feedback scope for alpha | ✅ **Decided 2026-09-24: the full set** — the collapse moment (rubble swap + dust/debris + camera shake + sound), smoke and fire once a tower or the castle drops below half HP, and destroyed towers keep smoldering so the battlefield shows what you've torn down (pillar 1) | Feedback work |
 
 ### 12.3 Checklist to alpha, in order
-**Phase 0 — close out the current thread**
+**Target: end of 2026** (decided 2026-09-24) — about 13 weeks from now, which is tight for three people and six phases. The dates below are a plan, not a promise.
+- **Checkpoint on 19 October (end of Phase 1):** compare progress to the plan and re-plan honestly.
+- **Art runs in parallel and must start early:** the Figma card/hand/HUD designs are needed when Phase 2 starts (20 Oct), and the castle kit needs to be well along when Phase 3 starts (10 Nov).
+- **If behind, cut in this order:** castle ruins, props and ground texture → Tank card → smoldering rubble → the reward trade step → the win bonuses → a 2-castle run instead of 3. Everything else is the core of the alpha.
+
+**Phase 0 — close out the current thread** · by 28 Sep
 - [ ] Rush test at tower range 12: Grunt Rush + Big Push (15 grunts, all 100 currency). If towers beat every affordable combo, pull range back (~10) or lower tower damage. [Kevin]
 - [ ] Commit + push the swarm card and tower retune. [Kevin]
 - [ ] Playtest the overlapping-projectile case (2+ towers on one weak monster) — what the pooling fix targets. [Kevin]
 - [ ] Cleanup: delete the one-shot editor scripts in `Assets/Editor/`, `_to_delete/` in both repos, Sandbox's leftover `TestMonster`. [Kevin]
 
-**Phase 1 — the encounter feels complete (desktop is fine)**
-- [ ] D1: implement the chosen pacing model; currency UI to match. [Kevin]
+**Phase 1 — the encounter feels complete (desktop is fine)** · 29 Sep – 19 Oct
+- [ ] D1: implement the hybrid budget (§3 "Encounter pacing") — regeneration + holding cap + encounter budget in `GameManager`; tower bounty paid from `Tower`'s destroy path; `GameOverManager` lose check gains "budget spent"; HUD shows currency, cap and budget left; a "+40" bounty pop-up where a tower falls; `[EncounterEnd]` log adds budget left and bounties earned. [Kevin]
 - [ ] Balance pass on one encounter with the new pacing; record in §5. Target the §5 shape: rushing wins, trickling loses, Swarm needs support. [Kevin]
 - [ ] World-space tower HP bars (so Attack Towers progress is visible) + a hit flash when the castle takes damage. [Kevin; bar style: Art/UI]
-- [ ] D7: tower destruction feedback v0 — replace "hide on death" with a rubble placeholder + particle burst + small camera shake + sound. [Art/UI: rubble, particles · Kevin: hook-up]
-- [ ] One new card: a **Brute** boss (1×, high HP/damage, slow, `unitScale` ~1.8). [New dev — good first task: pure data + playtest]
+- [ ] D7: destruction feedback — replace "hide on death" with the rubble model + dust/debris burst + small camera shake + sound; smoke and fire once a tower or the castle is below half HP (a threshold hook in `Tower.TakeDamage` / `Castle.TakeDamage`); destroyed towers keep a smoldering loop on the rubble. [Art/UI: rubble, particles · Kevin: hook-up]
+- [ ] New cards from the roster (§3 "Alpha run rules"): **Brute**, **Tank** and **Runner** as pure data (existing overrides). [New dev — good first task: data + playtest]
+- [ ] **Sapper**: add a "bonus damage vs. towers" card stat (reset per life in `MonsterMover.OnSpawn`), then the card. [Kevin or new dev]
+- [ ] Starter deck → 10 cards: 4× Lone Grunt, 3× Grunt Rush, 2× Big Push + a wildcard slot (`DeckDefinition` gains a wildcard options list — Sapper, Runner, Tank — and `RunManager` picks one when a run starts; outside a run, e.g. pressing Play in Sandbox, pick at encounter start). Plus a `CardPool` asset with Swarm and Brute (rare) plus Tank, Runner and Sapper (common) — needs the `rarity` field, shared with the Phase 3 reward screen. [Kevin]
 - [ ] Placeholder SFX: tower shot, hit, monster death, castle hit, tower collapse. [Art/UI + Kevin]
 
-**Phase 2 — touch UI**
+**Phase 2 — touch UI** · 20 Oct – 9 Nov
 - [ ] Figma: card hand, HUD (currency, castle HP, active order), order buttons, win/lose panels — at phone landscape size, following the touch-compatible rule (§8) even though the alpha ships on PC. [Art/UI]
 - [ ] Card hand in uGUI + TMP: tap to play, cost + affordability state, played card animates out, next draws in; delete `HandDebugUI`. [Kevin: logic · Art/UI: layout/styling]
 - [ ] On-screen **Focus Castle / Attack Towers** buttons showing the active order; C/T stay as dev-only shortcuts. [Kevin]
 - [ ] Safe-area-aware layout, checked at 16:9, 19.5:9 and 20:9 in the Game view. [Art/UI + Kevin]
 
-**Phase 3 — minimal run**
-- [ ] D4: split the per-castle layout out of `GameplayRig`; add `CastleDefinition` (`[CreateAssetMenu(menuName = "Castle Attack/Castle")]`). [Kevin]
+**Phase 3 — minimal run** · 10 Nov – 7 Dec
+- [ ] D4: split the per-castle layout (path + waypoints, castle, towers, ground, road, spawn portal) out of `GameplayRig` into a layout prefab; add `CastleDefinition` (`[CreateAssetMenu(menuName = "Castle Attack/Castle")]`) with the layout prefab, castle HP and tower HP/damage/range multipliers. The encounter scene loads the current castle's layout from `RunManager`; Sandbox gets a castle picker for testing one castle directly. Update the §4 "Scene structure reference" table to match. [Kevin]
 - [ ] Author 3 escalating castles — e.g. 1 = today's (2 towers, 40 HP); 2 = 3 towers, more HP; 3 = 4 tougher towers. Tune by play. [Kevin: layout · Art/UI: visual pass later]
 - [ ] `RunState` gains current castle index + run deck (starts from `StarterDeck`, grows); `HandManager` takes the run deck instead of a fixed `DeckDefinition`. [Kevin]
 - [ ] Encounter reports its result to `RunManager`: win → reward → next castle; loss → run over. `GameOverManager` stays the single arbiter, with run-level outcomes added in a fixed priority order (§4 warning). [Kevin]
-- [ ] Reward screen: pick 1 of 3 random cards from a `CardPool` asset, added to the run deck. [Kevin: logic · Art/UI: screen]
-- [ ] Title screen ("Start Run") + run-end screen (castles cleared, win/loss, "New Run"). Retry now means a new run; the R-key scene reload stays as a dev tool. [Kevin + Art/UI]
+- [ ] Reward screen (§3 "Alpha run rules"): pick 1 of 3 from a `CardPool` asset (4 with the all-towers bonus; a rare included with the budget-left bonus) + optional trade of 1 deck card. Needs a `rarity` field on `CardDefinition`. [Kevin: logic · Art/UI: screen]
+- [ ] **Player-visible path** — a road/trail along each castle's waypoints, plus a spawn portal. Today the path only exists as an editor gizmo; players can't see where monsters will walk. [Art/UI: look · Kevin: placement per layout]
+- [ ] "Castle N of 3" indicator (HUD or a short transition card between castles). [Art/UI + Kevin]
+- [ ] D5: a **menu scene** with the title screen ("Start Run") and the run-end screen (castles cleared, win/loss, "New Run"), first in Build Settings; it holds a `SceneEnvironment` instance so `RunManager` exists from the start. Retry now means a new run; the R-key scene reload stays as a dev tool. Update the §4 "Scene structure reference" table. [Kevin + Art/UI]
 
-**Phase 4 — shippable PC builds**
+**Phase 4 — shippable PC builds** · 8 – 14 Dec
 - [ ] Windows build profile; a full run works outside the Editor. [New dev — good candidate]
 - [ ] WebGL build profile: compression set up (itch.io serves Brotli/gzip builds), check download size and load time. [New dev + Kevin]
 - [ ] itch.io page (restricted/private link for playtesters first); upload the WebGL build. [Kevin]
@@ -519,12 +575,13 @@ The working checklist, organized around one milestone. §9 stays the place for d
 - [ ] Performance in the browser and on Windows: 50-unit swarm + projectiles; Profiler for GC spikes and draw calls (shared materials, SRP Batcher). WebGL is the tighter budget. [Kevin + New dev]
 - [ ] *(Optional)* Android smoke test: build installs on a phone and a run is playable by touch — no performance work, just proof the touch rule held. [New dev]
 
-**Phase 5 — alpha polish + playtest**
+**Phase 5 — alpha polish + playtest** · 15 – 31 Dec
 - [ ] Art swaps with the biggest readability payoff: castle model (castle first, §6), one monster, card frame. [Art/UI]
 - [ ] Clean tower re-export (drops the Unity-side scale hacks, §4). [Art/UI]
 - [ ] Bug bash: a full run with a clean Console. [everyone]
 - [ ] Playtest with 3–5 people who haven't seen it, via the itch.io link; note where they get confused; collect `[EncounterEnd]` logs (a Windows build keeps a `Player.log`; WebGL needs the browser console or an in-game export). [Kevin]
-- [ ] Tag the build `alpha-0.1` in git and make the itch.io page shareable (portfolio/CV link). [Kevin]
+- [ ] Tag the build `alpha-0.1` in git. The itch.io page stays a private/restricted link for playtesters. [Kevin]
+- [ ] After playtest feedback: a polished public build and itch.io page for the portfolio/CV (decided 2026-09-24: private first, public later). [Kevin + Art/UI]
 
 ### 12.4 After alpha (explicitly deferred)
 - **Two run resources** — horde strength + run-wide wave budget (§3). Open: waves-cleared vs. elapsed time (leaning waves-cleared — ties to the spawn/despawn events the economy already uses); partial replenishment rate.
@@ -533,7 +590,6 @@ The working checklist, organized around one milestone. §9 stays the place for d
 - **Flying units** — build the path-blocking obstacle first, so flyer balance is tuned against real friction.
 - **Per-card-group orders + Hold** (§8) — `MonsterMover.SourceCard` is already threaded through for this.
 - Castle-spawned defenders; destructible castle parts; castle progression within an encounter.
-- Persistent "wounded" fire/smoke on towers and the castle (D7).
 - **Mobile port** — Android first: build profile, performance pass on a mid-range phone (swarm sizes, draw calls), store setup; then iOS (needs a Mac). Mid-run resume becomes important here — mobile OSes kill backgrounded apps (§4 save/load).
 - Meta-progression; save/load + mid-run resume (§4 stance); more starter decks; final art.
 - *(Only if skybox/ambient get customized)* move Lighting-window settings onto a component on `SceneEnvironment` (§4 "Scene structure reference").

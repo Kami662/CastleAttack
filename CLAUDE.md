@@ -64,7 +64,7 @@ SceneSyncSetup, SwarmCardSetup (all one-shot, already run).
 
 ## Working todo list
 `docs/game-design-document.md` §12 is the **road to a first playable alpha**: the alpha
-definition, open decisions (D1–D7, with recommendations), a phased checklist (0–5) with
+definition, the design decisions D1–D7 (all made 2026-09-24), a phased checklist (0–5) with
 owners, and what's deliberately deferred until after alpha. Check it at the start of a
 session for what's actually next, and don't pull post-alpha work (§12.4) forward
 without asking.
@@ -82,12 +82,10 @@ visible `Projectile` (placeholder sphere, arrow art later),
 `MonsterMover` diverting to the nearest standing tower on AttackTowers.
 
 **Next:** GDD §12 phase 0 — check the rush still wins now that tower range is 12
-(GDD §5 — towers are ~2× stronger than the validated v1 balance). Then phase 1:
-pacing model (D1). Longer term: real uGUI card hand UI (replaces HandDebugUI), currency/pacing model
-(decide by feel — fixed pool vs. regenerating income is the big open question),
-**flying units** (bypass the waypoint path;
-weaker than ground units; the ground path gets blocked by environment later so
-flyers become a deck-building decision), tower-destruction VFX.
+(GDD §5 — towers are ~2× stronger than the validated v1 balance). Then phase 1,
+starting with the hybrid-budget pacing (D1, GDD §3 "Encounter pacing"). All alpha
+decisions D1–D7 are made (GDD §12.2); flying units, stun, run resources and the
+mobile port are post-alpha (§12.4).
 
 ## Conventions / gotchas
 - Unity 6: `FindObjectOfType` and `FindFirstObjectByType` are both deprecated →
