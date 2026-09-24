@@ -27,7 +27,7 @@ public class HandDebugUI : MonoBehaviour
         float y = Screen.height - h - 20f;
 
         GUILayout.BeginArea(new Rect(0, y - 24, Screen.width, 20));
-        GUILayout.Label($"  Currency: {gameManager.currency}   (placeholder hand — press 1/2/3 or click)");
+        GUILayout.Label($"  Currency: {gameManager.Currency}   (placeholder hand — press 1/2/3 or click)");
         GUILayout.EndArea();
 
         for (int i = 0; i < cards.Count; i++)
@@ -35,7 +35,7 @@ public class HandDebugUI : MonoBehaviour
             CardDefinition c = cards[i];
             if (c == null) continue;
 
-            bool affordable = gameManager.currency >= c.spawnCost;
+            bool affordable = gameManager.Currency >= c.spawnCost;
             GUI.enabled = affordable;
 
             string label = $"{c.cardName}\ncost {c.spawnCost}   ({c.spawnCount}x)\n[key {i + 1}]";

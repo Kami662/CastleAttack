@@ -27,13 +27,24 @@ public class Tower : MonoBehaviour
     private static readonly List<Tower> standing = new List<Tower>();
     public static IReadOnlyList<Tower> StandingTowers => standing;
 
+    /// <summary>Raised once when a tower is destroyed (GameManager pays the bounty).</summary>
+    public static event System.Action<Tower> Destroyed;
+
+    // A Tower on the castle itself is the castle's own gun, not a separate
+    // defense: it never joins StandingTowers, so Attack Towers never targets it
+    // and it can't be destroyed (and hide the castle) on its own. The castle
+    // falls only through its Castle HP.
+    private bool isCastleGun;
+
     void Awake()
     {
         health = maxHealth;
+        isCastleGun = GetComponent<Castle>() != null;
     }
 
     void OnEnable()
     {
+        if (isCastleGun) return;
         if (!IsDestroyed && !standing.Contains(this)) standing.Add(this);
     }
 
@@ -83,7 +94,7 @@ public class Tower : MonoBehaviour
     /// <summary>Called by monsters attacking this tower.</summary>
     public void TakeDamage(int amount)
     {
-        if (IsDestroyed) return;
+        if (IsDestroyed || isCastleGun) return;
         health -= amount;
         if (health <= 0) DestroyTower();
     }
@@ -93,6 +104,7 @@ public class Tower : MonoBehaviour
         IsDestroyed = true;
         standing.Remove(this);
         Debug.Log($"{name} destroyed!");
+        Destroyed?.Invoke(this);
         // Placeholder: just hide it. Later — swap to a rubble model, play a
         // collapse animation + sound (the "destruction should feel earned" beat).
         gameObject.SetActive(false);

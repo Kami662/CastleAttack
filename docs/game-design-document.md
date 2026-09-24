@@ -43,7 +43,7 @@ The single-battle loop, which is fully implemented and tuned (see §5). In the r
    - **Lose:** the player can no longer afford to play any card in hand and no monsters remain alive on the field.
 6. On either outcome the game freezes and a **Retry** action reloads the encounter (see §4).
 
-A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system"), and the player can now issue a global **order** to the horde — *focus the castle* (default) or *attack the towers* — the first slice of the unit-command system (§3, §4). Current input is keyboard for desktop testing only (number keys to play cards; C / T for orders) — see §8 for the actual touch-first input design. **Pacing is decided (2026-09-24): a hybrid budget** — currency regenerates up to a holding cap, each encounter has a finite regeneration budget, and destroying a tower pays a bounty (§3, "Encounter pacing"). Not built yet; the current build still uses the fixed 100 pool.
+A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system"), and the player can now issue a global **order** to the horde — *focus the castle* (default) or *attack the towers* — the first slice of the unit-command system (§3, §4). Current input is keyboard for desktop testing only (number keys to play cards; C / T for orders) — see §8 for the actual touch-first input design. **Pacing (built 2026-09-24): a hybrid budget** — currency regenerates up to a holding cap, each encounter has a finite regeneration budget, and destroying a tower pays a bounty (§3, "Encounter pacing"). This replaced the old fixed 100 pool.
 
 ## 3. Longer-term Design (planned, not yet built)
 
@@ -58,7 +58,7 @@ A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system")
 - **Between-castle choices are the run's texture.** After each cleared castle the player makes a meaningful choice — a card to add, a permanent buff, a resource trade. Exact menu of options undecided (§9).
 - **Escalation:** later castles in a run have more towers, tougher towers, and — on some — castle-spawned defending units (see Castle Defenses).
 
-### Encounter pacing (hybrid budget) — decided 2026-09-24, not yet built
+### Encounter pacing (hybrid budget) — decided and built 2026-09-24
 - **Regeneration:** currency ticks up at a steady rate, up to a **holding cap** — you can't bank more than the cap, so one giant stockpiled push is limited.
 - **Encounter budget:** each encounter has a total amount regeneration can produce; once it's used up, regeneration stops. The budget **keeps draining while you sit at the cap** (overflow is wasted — use it or lose it), so encounters stay about 2 minutes even if someone plays passively.
 - **Tower bounty:** destroying a tower pays a one-off bounty, **on top of both the cap and the budget** — aggression directly extends your encounter. This gives the Attack Towers order a clear payoff in the alpha and makes tearing down defenses feel earned (pillar 1). No bounty for castle damage for now (castle breach milestones were considered — a later option, tied to destructible castle parts).
@@ -315,7 +315,7 @@ Stun is the first status effect, not the last — slows, DoT, armor reduction fo
 | Tower Damage | 15 per hit |
 | Monster Max HP | 30 |
 | Monster damage to castle | 10 |
-| Starting Currency | 100 |
+| Currency (hybrid budget, since 2026-09-24) | start 50 · +4/s · cap 100 · budget 360 · tower bounty 40 (was: a fixed 100 pool) |
 | Hand size | 3 |
 
 **Cards (per-asset data):**
@@ -336,6 +336,9 @@ Starter deck in the current build: 3× Lone Grunt, 2× Grunt Rush, 1× Big Push,
 - **Lone Grunt:** dies ~7s in, at the first tower — trickling still loses. ✅
 - Swarm + Lone Grunt (the whole 100 currency) → loss at 11/40, 0 errors.
 - **Rush test (Big Push + Grunt Rush, 15 grunts, all 100 currency, Focus Castle): lost.** Only 2 of 15 reached the castle (40 → 20 HP); the towers killed 13. The two cards were played ~4s apart, which spread the stream and favored the towers a little, but 2 of the needed 4 is not close. **At range 12, under the fixed 100 pool, the best affordable rush loses — towers beat every affordable combo.** Note that the hybrid budget's holding cap (100) also caps a single burst at 100, so under the new pacing a winning rush will have to be several overlapping bursts, or go through Attack Towers + bounties first.
+
+**First run with the hybrid budget (2026-09-24, Sandbox):** Attack Towers + steady card play destroyed both guard towers (+80 in bounties) and won in **52s** with 153 of 360 budget left — well under the ~2-minute target, so the encounter is now too easy that way. The Phase 1 balance pass starts from here.
+- **The castle also shoots.** `Castle_Placeholder` carries its own `Tower` component (range **6** — it never got the range-12 change, which was on `Tower.prefab` only), so there are three shooters, not two. Until 2026-09-24 that gun also counted as an attackable tower: Attack Towers monsters could "destroy" it, which hid the entire castle and made the encounter unwinnable (and paid a bounty). Fixed — a `Tower` on the castle is now the castle's own gun: it keeps shooting but can't be targeted or destroyed separately. **Open question for D4 / the balance pass:** should castles shoot at all, and if so should `CastleDefinition` set the castle gun's stats?
 
 **Towers & attacking them (new, first-pass — untuned):** Tower `maxHealth` 100; fires a visible projectile (speed ~20). A monster ordered onto a tower: `attackRange` 1.5, `attacksPerSecond` 1, dealing its `damage` per hit. So one grunt (10 dmg) takes ~10s to fell a 100-HP tower alone; a group is much faster.
 
@@ -541,7 +544,7 @@ The working checklist, organized around one milestone. §9 stays the place for d
 - [x] Cleanup (2026-09-24): `_to_delete/` in both repos (sent to the Recycle Bin), Sandbox's leftover `TestMonster` removed, and the one-shot editor scripts deleted (`GameplayRigSetup`, `TowerSetup`, `SceneSyncSetup`, `SwarmCardSetup` — still in git history). **Phase 0 complete.** [Kevin]
 
 **Phase 1 — the encounter feels complete (desktop is fine)** · 29 Sep – 19 Oct
-- [ ] D1: implement the hybrid budget (§3 "Encounter pacing") — regeneration + holding cap + encounter budget in `GameManager`; tower bounty paid from `Tower`'s destroy path; `GameOverManager` lose check gains "budget spent"; HUD shows currency, cap and budget left; a "+40" bounty pop-up where a tower falls; `[EncounterEnd]` log adds budget left and bounties earned. [Kevin]
+- [x] D1: hybrid budget built (2026-09-24) — regeneration + holding cap + encounter budget in `GameManager` (all five numbers in the Inspector); `Tower.Destroyed` event → `GameManager` pays the bounty; lose requires "budget spent"; HUD shows currency / cap and budget seconds left; `BountyPopup` shows a floating "+40"; `[EncounterEnd]` logs budget left and bounties earned. Tested: regeneration, cap, bounty above the cap, the "+40" pop-up, the lose timing and a win. Also fixed the castle-gun bug found while testing (§5). [Kevin]
 - [ ] Balance pass on one encounter with the new pacing; record in §5. Tune tower strength (range 12 currently beats every affordable rush — §5) together with the cap, regeneration, budget and bounty. **Explicit targets:** a well-timed rush wins, trickling loses, Swarm needs support. Then check castles 2 and 3 are still beatable within the same budget. [Kevin]
 - [ ] World-space tower HP bars (so Attack Towers progress is visible) + a hit flash when the castle takes damage. [Kevin; bar style: Art/UI]
 - [ ] D7: destruction feedback — replace "hide on death" with the rubble model + dust/debris burst + small camera shake + sound; smoke and fire once a tower or the castle is below half HP (a threshold hook in `Tower.TakeDamage` / `Castle.TakeDamage`); destroyed towers keep a smoldering loop on the rubble. [Art/UI: rubble, particles · Kevin: hook-up]
@@ -597,4 +600,5 @@ The working checklist, organized around one milestone. §9 stays the place for d
 - **2026-09-23** — pooling fix (`MonsterMover.IsAlive`: stale projectile references were damaging pooled monsters twice); `sqrMagnitude` range checks; `ProjectilePool`; `RunManager` + `RunState` shell; card identity on monsters (`MonsterMover.SourceCard`); `[EncounterEnd]` logging. Commit `425ae6a`.
 - **2026-09-23/24** — map doubled; `PathVisualizer`; scenes synced into `GameplayRig` + new `SceneEnvironment` prefab. Commit `46d13c9`.
 - **2026-09-24** — Swarm card + `unitScale` override; both pools prewarmed; tower range 6 → 12 (§5).
+- **2026-09-24** — Phase 0 done (rush test, overlapping-projectile playtest, cleanup). Phase 1 started: hybrid budget built; castle-gun bug fixed.
 - **Incident note:** a hand-edited `ProjectilePool.prewarmPrefab` reference in `GameplayRig.prefab`'s YAML caused an `InvalidCastException` on scene start (fixed by clearing it + adding a try/catch around `Instantiate` in both `ProjectilePool` and `MonsterSpawner`'s `CreateNew`). Lesson: prefab asset references get assigned via the Inspector or the editor API, not hand-written YAML. *Root cause, found later:* a field referencing a prefab needs the fileID of the prefab's **root GameObject** (e.g. `TestMonster` = `1640811771736085792`); the hand-written `100100000` points at the prefab asset itself, which isn't a `GameObject` — hence the invalid cast.

@@ -81,9 +81,11 @@ visible `Projectile` (placeholder sphere, arrow art later),
 `UnitCommander` global order FocusCastle/AttackTowers on dev keys C/T, with
 `MonsterMover` diverting to the nearest standing tower on AttackTowers.
 
-**Next:** GDD §12 phase 1, starting with the hybrid-budget pacing (D1, GDD §3
-"Encounter pacing"). Phase 0 is done. The rush test at tower range 12 lost — towers
-currently beat every affordable combo; retuning is part of the phase 1 balance pass. All alpha
+**Next:** the rest of GDD §12 phase 1. The hybrid budget (D1) is built; the first
+run won in 52s via Attack Towers + bounties (too easy vs. the ~2-min target) while the
+rush alone lost at range 12 — both feed the phase 1 balance pass. Note the castle has
+its own gun (a `Tower` component on `Castle_Placeholder`, range 6) that can't be
+targeted or destroyed separately. All alpha
 decisions D1–D7 are made (GDD §12.2); flying units, stun, run resources and the
 mobile port are post-alpha (§12.4).
 
