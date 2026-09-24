@@ -27,15 +27,10 @@ public class RunManager : MonoBehaviour
         }
         Instance = this;
 
-        if (transform.parent != null)
-        {
-            // DontDestroyOnLoad only works on a root GameObject. Warn loudly
-            // instead of silently failing to persist across scene reloads.
-            Debug.LogWarning("RunManager must be a root GameObject (not nested " +
-                             "under GameplayRig or anything else) for DontDestroyOnLoad " +
-                             "to work — unparent it in the scene.");
-            return;
-        }
+        // Lives inside the SceneEnvironment prefab so every scene gets one, but
+        // DontDestroyOnLoad only works on root objects — detach first, so only
+        // this object persists and not the camera/light it's grouped with.
+        transform.SetParent(null);
         DontDestroyOnLoad(gameObject);
     }
 }

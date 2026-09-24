@@ -37,9 +37,18 @@ decisions. It is mirrored from a claude.ai Project doc, which is the source of t
 - **Pooling reset lives in `MonsterMover.OnSpawn`.** `Start()` and field initializers
   do NOT run on a reused object. Any new per-life state (buffs, status effects, stat
   overrides, animation state) MUST be reset there or it leaks between lives.
-- **Shared `GameplayRig` prefab.** Managers + UI + spawn point/path/castle/tower live
-  in `Assets/Prefabs/GameplayRig.prefab`, instanced by both `SampleScene` (canonical)
-  and `Sandbox` (scratch). **Edit the prefab, not a scene's copy.**
+- **Scenes are just prefab instances.** Both `SampleScene` (canonical) and `Sandbox`
+  (scratch) contain only two shared prefabs, so they can't drift apart:
+  - `Assets/Prefabs/GameplayRig.prefab` — managers, UI, spawn point, path, castle,
+    towers, ground (the layout).
+  - `Assets/Prefabs/SceneEnvironment.prefab` — camera, light, global volume,
+    `RunManager` (which detaches itself at runtime for `DontDestroyOnLoad`).
+  - **Rules:** if both scenes need it, it goes in a prefab, never only in a scene.
+    **Edit the prefab, not a scene's copy** — no overrides on the scene instances
+    (apply or revert them). Sandbox may add scratch objects on top (e.g. `TestMonster`).
+  - Per-scene Lighting settings (skybox, ambient, fog) can't be prefabbed and still
+    live in each scene — change them in **both**. Full what-lives-where table: GDD §4
+    "Scene structure reference".
 - **Editor automation** for fiddly setup: `Assets/Editor/*.cs` with
   `[MenuItem("Castle Attack/Setup/...")]`. These are one-shot and disposable.
 
@@ -47,8 +56,9 @@ decisions. It is mirrored from a claude.ai Project doc, which is the source of t
 GameManager, CardDefinition, DeckDefinition, HandManager, HandDebugUI (throwaway
 IMGUI hand), MonsterSpawner, MonsterMover, Castle, Tower, Projectile, ProjectilePool,
 UnitCommander, UIManager, GameOverManager, RunManager, RunState (empty shell — see
-GDD §"Anticipated: run state must outlive the encounter scene"). Editor/:
-GameplayRigSetup, TowerSetup.
+GDD §"Anticipated: run state must outlive the encounter scene"), PathVisualizer
+(Scene-view gizmo for the path, on `Path`). Editor/: GameplayRigSetup, TowerSetup,
+SceneSyncSetup (all one-shot, already run).
 
 ## Working todo list
 `docs/game-design-document.md` §12 has a checkbox-style todo list (manual Editor

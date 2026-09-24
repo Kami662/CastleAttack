@@ -204,7 +204,27 @@ Play is driven by a **hand of cards drawn from a deck**, with a placeholder UI. 
 Monsters are reused instead of instantiated/destroyed — no per-unit churn or GC hitch once the pool is warm. `MonsterSpawner` keeps one pool per prefab; `Spawn` reuses/instantiates, `Despawn` deactivates + enqueues. **`MonsterMover.OnSpawn` is the correctness core:** `Start()`/field initializers don't run on a reused object, so `OnSpawn` re-sets HP, waypoint index, `enabled`, **and now the default stats** on every spawn — anything that becomes per-life state (status effects, buffs, stat overrides) must reset there. Verified: a Grunt Rush (5×) after a death spawned exactly 5 (1 reused + 4 new), all full-HP from the spawn point; 0 errors.
 
 ### Built: shared GameplayRig prefab + Sandbox scene — done 2026-09-18
-The interdependent gameplay/UI objects are grouped under one **`GameplayRig`** prefab (`Assets/Prefabs/GameplayRig.prefab`); `SampleScene` (canonical) and `Sandbox` (scratch) both instance it, so a wiring change is made **once, in the prefab**, and both scenes inherit it. Environment (camera, light, ground, volume) stays per-scene. Both scenes are in Build Settings. **Team rule: edit the prefab, not a scene's copy.** The **tower** (below) was later added into this prefab, so both scenes have it. (A leftover inactive `TestMonster` still sits at scene root in both scenes — harmless; clean up whenever.)
+The interdependent gameplay/UI objects are grouped under one **`GameplayRig`** prefab (`Assets/Prefabs/GameplayRig.prefab`); `SampleScene` (canonical) and `Sandbox` (scratch) both instance it, so a wiring change is made **once, in the prefab**, and both scenes inherit it. Both scenes are in Build Settings. **Team rule: edit the prefab, not a scene's copy.** The **tower** (below) was later added into this prefab, so both scenes have it. (A leftover inactive `TestMonster` still sits at Sandbox's scene root — harmless scratch; clean up whenever.)
+
+**Update 2026-09-24 — environment moved into prefabs too.** Environment originally stayed per-scene, and it drifted: after the map was doubled, Sandbox kept the old ground size and camera, never got `RunManager`, and missed scene-only rig overrides (tower placement, the `PathVisualizer`). Fix: both scenes now contain **only prefab instances**. The ground moved into `GameplayRig` (its size follows the path layout the rig already owns), and a new **`SceneEnvironment`** prefab holds the camera, light, global volume and `RunManager`. `RunManager` sits inside it as a child and detaches itself before `DontDestroyOnLoad`, so it persists without dragging the camera/light along. Done by a one-shot editor script (`Castle Attack ▸ Setup ▸ 4. Sync scenes`). **Rules:** if both scenes need it, it goes in a prefab; no overrides on the scene instances — apply or revert them. Only per-scene Lighting settings (skybox, ambient) can't be prefabbed.
+
+### Scene structure reference — what lives where
+The quick answer to "where do I change X, and does it reach both scenes?"
+
+| Lives in | Contents | Edit where | Reaches both scenes? |
+|---|---|---|---|
+| **`GameplayRig` prefab** | Managers (`GameManager`, `HandManager` + `HandDebugUI`, `MonsterSpawner`, `ProjectilePool`, `UnitCommander`, `GameOverManager`, `UIManager`), `Canvas` UI (currency, castle HP, game-over text, retry button), `EventSystem`, `Spawn_Marker`, `Path` + 5 waypoints + `PathVisualizer`, `Castle_Placeholder`, both towers (`Tower_Guard`, `Tower_Guard (1)` — nested `Tower.prefab`), `Ground` | Open the prefab (double-click it, or the arrow next to it in the Hierarchy) | Yes, automatically |
+| **`SceneEnvironment` prefab** | `Main Camera`, `Directional Light`, `Global Volume` (post-processing), `RunManager` | Same — open the prefab | Yes, automatically |
+| **Each scene file (`.unity`)** | **Lighting window ▸ Environment**: skybox, ambient light, fog, reflections; lightmap/baked-lighting settings. Sandbox also holds its own scratch objects (e.g. `TestMonster`) | Window ▸ Rendering ▸ Lighting, **once per scene** | **No — change it in both scenes by hand** |
+| **Project settings** | Build Settings scene list (`SampleScene` 0, `Sandbox` 1), Input System mode, URP asset | Edit ▸ Project Settings / File ▸ Build Profiles | Project-wide (saved on *project* save) |
+
+**What still needs doing per scene:**
+- Lighting window Environment changes (skybox/ambient/fog) — make them in **both** scenes. Currently both are identical Unity defaults. If these get customized (likely once the art direction lands), move them onto a small component on `SceneEnvironment` that applies them at startup, so they're prefab-owned too.
+- Nothing else. Everything else is a prefab edit.
+
+**Adding a new scene:** add a `GameplayRig` and a `SceneEnvironment` instance, both at position (0,0,0) with no overrides; copy the Lighting window Environment settings; add the scene to Build Settings.
+
+**Checking for drift:** select a prefab instance in a scene → Inspector **Overrides** dropdown. It should say "No overrides" (the instance's own root position/name don't count). Anything listed there exists only in that scene — **Apply All** (push to the prefab) or **Revert All**.
 
 ### Built: gf's tower model in-game — done 2026-09-19
 The first real **art asset** replaces a gray-box: the girlfriend's Blender tower stands beside the path as a working defensive `Tower` (its `Tower.cs` fires at monsters). It's a nested prefab inside the shared `GameplayRig`, so both scenes have it; `Assets/Prefabs/Tower.prefab` is the reusable tower.
@@ -405,7 +425,7 @@ Unity-side safety net (the programmer): on the model importer, untick **Import C
 
 ### Working conventions
 - Don't edit the same scene simultaneously; prefer prefabs over scene objects for shared things; commit `.meta` files with their assets; never commit `Library/`.
-- **Edit the `GameplayRig` prefab, not a scene's copy** (§4). `SampleScene` is canonical; `Sandbox` is scratch.
+- **Edit the `GameplayRig` / `SceneEnvironment` prefabs, not a scene's copy** (§4). `SampleScene` is canonical; `Sandbox` is scratch. Scenes should contain only those prefab instances (plus Sandbox scratch objects) — anything both scenes need goes in a prefab, and scene-instance overrides get applied or reverted, never left.
 
 ### Cross-surface context (2026-09-22)
 So every surface (claude.ai chat, **Claude Code**) and the incoming developer share the same context:
@@ -442,6 +462,13 @@ A flatter, checkbox-style list to actually work from — narrower and more mecha
 - **Incident note:** a hand-edited `ProjectilePool.prewarmPrefab` reference in `GameplayRig.prefab`'s YAML caused an `InvalidCastException` on scene start (fixed by clearing it + adding a try/catch around `Instantiate` in both `ProjectilePool` and `MonsterSpawner`'s `CreateNew`). Lesson: prefab asset references get assigned via the Inspector, not hand-written YAML.
 - [x] Thread card/group identity onto `MonsterMover` at spawn time — `MonsterMover.SourceCard` set via `SetSourceCard()` in `MonsterSpawner.SpawnGroup`, reset in `OnSpawn`. Not consumed by anything yet; prep for per-card-group unit orders (§8).
 - [x] Instrument encounter-end reason — `GameOverManager.ShowWin`/`ShowLose` now log a `[EncounterEnd]` line with the resource state at that moment (currency left / castle HP left / time), greppable in the Console now, and a natural data source once `RunManager` needs real tuning input (§7 risk: "one resource never binds").
+
+### Map resize + scene sync (2026-09-23/24)
+- [x] Map doubled: waypoints, spawn marker, castle, both towers and ground scaled ×2 around the origin; camera reframed. Balance numbers (tower range 6, monster speed 3) were **not** retuned — they're relatively weaker/slower on the bigger map, retune by feel.
+- [x] `PathVisualizer` — yellow Scene-view gizmo line through the waypoints, on the `Path` object.
+- [x] Scenes synced: ground into `GameplayRig`; camera/light/volume/`RunManager` into new `SceneEnvironment` prefab; SampleScene's scene-only rig overrides (tower placement, `PathVisualizer`) applied to the prefab. Both scenes now hold only prefab instances.
+- [ ] *(Only when the skybox/ambient light get customized)* Move Lighting-window Environment settings onto a small component on `SceneEnvironment` so they're prefab-owned too. Until then, change them in both scenes — see §4 "Scene structure reference".
+- [ ] Delete the one-shot editor scripts in `Assets/Editor/` (`GameplayRigSetup`, `TowerSetup`, `SceneSyncSetup`) whenever convenient — all have run.
 
 ### Fire/smoke VFX (flagged this session, not yet scoped)
 - [ ] Decide scope: destruction-moment-only effect, or a persistent "wounded" state below an HP threshold (the latter needs a threshold hook added to `Tower.TakeDamage`/`Castle.TakeDamage`, not just an on-death trigger).
