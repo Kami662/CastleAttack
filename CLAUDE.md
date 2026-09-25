@@ -81,10 +81,14 @@ visible `Projectile` (placeholder sphere, arrow art later),
 `UnitCommander` global order FocusCastle/AttackTowers on dev keys C/T, with
 `MonsterMover` diverting to the nearest standing tower on AttackTowers.
 
-**Next:** the rest of GDD §12 phase 1. The hybrid budget (D1) is built; the first
-run won in 52s via Attack Towers + bounties (too easy vs. the ~2-min target) while the
-rush alone lost at range 12 — both feed the phase 1 balance pass. Castles have their
-own defense by design: a `Tower` component on the castle (range 6 today) that can't be
+**Next:** the rest of GDD §12 phase 1. **D1 was re-decided 2026-09-25:** the built
+hybrid budget (regeneration + income timer) is being replaced by **earned income
+("plunder")** — a starting pot, coins per damage to towers/castle, tower bounty,
+a holding cap raised by razing towers, castle-HP milestones that raise the plunder
+rate, and **towns** (weak-gun buildings beside the road that pay finite tribute when
+destroyed). No passive income, no timer; lose = no affordable card + nothing alive +
+no tribute owed (GDD §3 "Encounter economy"). Build that before the balance pass. Castles have their
+own defense by design: a `Tower` component on the castle (range 8) that can't be
 targeted or destroyed separately; per-castle gun stats come from `CastleDefinition` (D4). All alpha
 decisions D1–D7 are made (GDD §12.2); flying units, stun, run resources and the
 mobile port are post-alpha (§12.4).

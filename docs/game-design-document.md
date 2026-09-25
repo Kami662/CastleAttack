@@ -43,7 +43,7 @@ The single-battle loop, which is fully implemented and tuned (see §5). In the r
    - **Lose:** the player can no longer afford to play any card in hand and no monsters remain alive on the field.
 6. On either outcome the game freezes and a **Retry** action reloads the encounter (see §4).
 
-A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system"), and the player can now issue a global **order** to the horde — *focus the castle* (default) or *attack the towers* — the first slice of the unit-command system (§3, §4). Current input is keyboard for desktop testing only (number keys to play cards; C / T for orders) — see §8 for the actual touch-first input design. **Pacing (built 2026-09-24): a hybrid budget** — currency regenerates up to a holding cap, each encounter has a finite regeneration budget, and destroying a tower pays a bounty (§3, "Encounter pacing"). This replaced the old fixed 100 pool.
+A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system"), and the player can now issue a global **order** to the horde — *focus the castle* (default) or *attack the towers* — the first slice of the unit-command system (§3, §4). Current input is keyboard for desktop testing only (number keys to play cards; C / T for orders) — see §8 for the actual touch-first input design. **Pacing (built 2026-09-24): a hybrid budget** — currency regenerates up to a holding cap, each encounter has a finite regeneration budget, and destroying a tower pays a bounty. This replaced the old fixed 100 pool. **Being replaced (decided 2026-09-25) by earned income ("plunder")**: damage pays, towns pay tribute, and there's no income timer (§3, "Encounter economy").
 
 ## 3. Longer-term Design (planned, not yet built)
 
@@ -58,27 +58,36 @@ A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system")
 - **Between-castle choices are the run's texture.** After each cleared castle the player makes a meaningful choice — a card to add, a permanent buff, a resource trade. Exact menu of options undecided (§9).
 - **Escalation:** later castles in a run have more towers, tougher towers, and — on some — castle-spawned defending units (see Castle Defenses).
 
-### Encounter pacing (hybrid budget) — decided and built 2026-09-24
-- **Regeneration:** currency ticks up at a steady rate, up to a **holding cap** — you can't bank more than the cap, so one giant stockpiled push is limited.
-- **Encounter budget:** each encounter has a total amount regeneration can produce; once it's used up, regeneration stops. The budget **keeps draining while you sit at the cap** (overflow is wasted — use it or lose it), so encounters stay about 2 minutes even if someone plays passively.
-- **Tower bounty:** destroying a tower pays a one-off bounty, **on top of both the cap and the budget** — aggression directly extends your encounter. This gives the Attack Towers order a clear payoff in the alpha and makes tearing down defenses feel earned (pillar 1). No bounty for castle damage for now (castle breach milestones were considered — a later option, tied to destructible castle parts).
-- **Lose:** budget spent **and** no affordable card **and** nothing alive (the existing check plus "budget spent"). Win is unchanged (castle destroyed).
+### Encounter economy (plunder) — decided 2026-09-25, not yet built
+**Replaces the hybrid budget** (built 2026-09-24). The hybrid budget's regeneration timer ("income stops in 37s") was confusing and was a system rule, not a player choice (pillar 2). Income is now **earned**: your army pays for itself by doing damage. Nothing drips in passively.
+- **Start:** a starting pot (e.g. 100). No passive income.
+- **Plunder:** every point of damage your monsters deal to a **tower** or the **castle** pays coins. A monster that reaches the castle deals its damage and is removed, so castle-damage plunder already pays for getting through the defenses; there's no separate payout for it.
+- **Tower bounty:** a lump sum when a tower falls, **on top of the cap** (as before).
+- **Holding cap:** stays. Plunder and tribute stop at the cap (overflow is wasted), so one giant stockpiled push is still limited.
+- **Towns (new target type):** buildings **beside the road** with a **weak gun**. The Attack Towers order also targets them (it becomes "attack buildings", nearest first). Damaging a town pays **nothing**. Destroying it pays **tribute**: the town empties its treasury as a drip over time (e.g. 60 coins over 30s), then stops. Tribute has to be finite, or you could never go broke and trickling would work again. A detour to a town is a greed choice: units spent now for income later.
+- **Growing the economy, by source:**
+  - **Razing a tower:** bounty + **+cap** for the rest of the encounter.
+  - **Castle HP milestones (75% / 50% / 25%):** **+plunder multiplier** (e.g. +25% each), so every breach makes the horde richer.
+  - **Towns:** tribute (above).
+  - **Between-castle rewards:** permanent **+cap** or **+plunder %** upgrades offered alongside cards (§3 "Alpha run rules").
+  - **Economy cards** (post-alpha, §12.4): e.g. a **Looter** unit that earns double plunder, a **War Chest** card that raises the cap.
+- **Lose:** can't afford any card in hand **and** nothing alive **and** no tribute still owed. There's no timer; you're simply broke. Win is unchanged (castle destroyed).
+- **Why it works:** trickling loses on its own, because lone units die before dealing damage and so earn nothing. A rush that gets through pays for the next push. The rush-vs-trickle tension (§5) is now "does this push pay for itself?"
 - **Card draw:** stays draw-on-play.
-- **Target length:** about **2 minutes per encounter** → a 3-castle alpha run takes about 6–8 minutes.
-- **Starting numbers (tune in the Phase 1 balance pass):** start 50 · +4/s · cap 100 · budget 360 (≈90s of regeneration) · tower bounty 40. Castle HP and tower counts will need to rise to match — roughly 5× more currency per encounter than today's 100.
-- **Why this shape:** it keeps the validated rush-vs-trickle tension (§5), now as "save up vs. spend now"; the finite budget keeps the current lose condition working; and the per-encounter budget is the natural precursor of the run-wide wave budget below (post-alpha).
-- **HUD needs:** current currency, the cap, and budget remaining.
+- **Target length:** still about **2 minutes per encounter**, now reached through tuning (castle HP, plunder rates) instead of a clock. A passive player simply doesn't earn.
+- **First-pass numbers (tune in the Phase 1 balance pass):** start 100 · cap 100 · plunder 1 coin per damage point · tower bounty 40 · +20 cap per razed tower · +25% plunder per castle milestone · town tribute 60 over 30s.
+- **HUD needs:** current currency and cap; a "+N" pop-up on plunder, bounty and tribute (`BountyPopup` already exists); a tribute indicator while one is running.
 
 ### Alpha run rules — decided 2026-09-24, not yet built
 - **One lost castle ends the run** — no second chance. A run is only 6–8 minutes, so starting over is cheap and every castle stays tense.
-- **Nothing carries between castles except the deck** (no currency, no HP). The two run resources below are post-alpha.
+- **Only the deck and economy upgrades carry between castles** (no currency, no HP). The economy upgrades are the +cap / +plunder % picked on the reward screen (updated 2026-09-25). The two run resources below are post-alpha.
 - **After each cleared castle** (castles 1 and 2 — beating castle 3 wins the run, so the reward screen appears twice per run):
-  - **Pick 1 of 3** new cards from the card pool, added to the run deck.
+  - **Pick 1 of 3** from the card pool, added to the run deck. The offer can also include an **economy upgrade** (+cap or +plunder %) in place of a card (decided 2026-09-25).
   - **Trade 1 (optional):** give up one card from your deck for a **random** different card from the pool — a gamble, mostly useful for getting rid of a card you don't want.
 - **Win bonuses** (shown on the reward screen):
   - **All towers destroyed** → pick from **4** instead of 3.
-  - **Won with budget left** (threshold TBD, e.g. ≥ 25%) → the offer includes a **rare** card. Needs a rarity tier on `CardDefinition`.
-- **Castles:** 3 per run, always in the same order (1 → 2 → 3). Each has **its own layout** (its own single path, castle and tower placement) chosen by a `CastleDefinition` asset, which also sets **castle HP**, **tower strength** (HP / damage / range multipliers) and the **castle's own gun** (range / damage / fire rate — every castle defends itself too, not just its towers). **Pacing numbers stay global** — every castle has the same currency budget, so later castles' extra HP and tougher towers must still be beatable within it (check in the balance pass). Per-castle reward pools, random castle order and multi-path castles are post-alpha.
+  - **All towns destroyed** → the offer includes a **rare** card. Needs a rarity tier on `CardDefinition`. (Was "won with budget left", which no longer exists; changed 2026-09-25.)
+- **Castles:** 3 per run, always in the same order (1 → 2 → 3). Each has **its own layout** (its own single path, castle and tower placement) chosen by a `CastleDefinition` asset, which also sets **castle HP**, **tower strength** (HP / damage / range multipliers) and the **castle's own gun** (range / damage / fire rate — every castle defends itself too, not just its towers). The layout also places the castle's **towns**. **Economy numbers stay global** — every castle uses the same starting pot, plunder rate and cap, so later castles' extra HP and tougher towers must still be beatable with them (check in the balance pass). Per-castle reward pools, random castle order and multi-path castles are post-alpha.
 - **Card roster (decided 2026-09-24): 8 cards**, all using the one grunt model with stat/scale overrides. First-pass numbers, tuned against the new pacing in the Phase 1 balance pass:
 
   | Card | Role | Summons | First-pass stats | Cost |
@@ -90,12 +99,12 @@ A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system")
   | **Brute** | damage boss | 1× | HP 300, dmg 30, speed 1.5, scale 1.8 | 70 |
   | **Tank** | damage sponge — soaks tower fire so others slip past | 1× | HP 400, dmg 5, speed 1.2, scale 1.5 | 50 |
   | **Sapper** | tower breaker — starts a "demolition" deck (bounties, destroy-every-tower bonus) | 3× | HP 25, dmg 10, **×4 damage vs. towers** | 50 |
-  | **Runner** | speed — races past towers, starts a "speed" deck (win-with-budget-left bonus) | 4× | HP 15, dmg 5, speed 7, scale 0.8 | 40 |
+  | **Runner** | speed — races past towers and raids towns fast, starts a "raider" deck (all-towns bonus) | 4× | HP 15, dmg 5, speed 7, scale 0.8 | 40 |
 
   Sapper needs one new card stat (bonus damage vs. towers), reset per life in `MonsterMover.OnSpawn` like the other overrides. On the field the three new unit types need a visual tell beyond size (a prop or color) — an art item.
-- **Starter deck (decided 2026-09-24): 10 cards** — 4× Lone Grunt, 3× Grunt Rush, 2× Big Push, plus **1 wildcard slot**: a random pick from Sapper, Runner or Tank at the start of each run. Decks aim for **about 10 cards** so draws vary more (hands rarely repeat). At ~14 cards played per castle under the new pacing, you cycle the deck about once per castle, so a newly won card shows up once or twice per castle. The wildcard makes each run lean a different way from castle 1 — demolition (Sapper: Attack Towers + bounties), speed (Runner: the budget-left bonus) or soak (Tank) — while the 9 fixed cards keep balance predictable. It varies the starting deck, not the rules (pillar 3). Future starter decks (post-alpha) also target ~10.
-- **Reward pool:** Swarm and Brute (**rare** — offered via the budget-left bonus), Tank, Runner and more Sappers (common). Swarm leaves the starter deck — it was only there for the pool stress test. With ~10-card decks each single reward matters less than in a 6-card deck, which is part of why the rares should feel strong and the trade step stays.
-- **Why the bonuses:** they pull in opposite directions — thorough (spend units and time to raze everything) vs. fast (win before the budget runs down). That's a cheap preview of the horde-vs-wave tension the run resources will formalize; alpha playtests show whether the full system is worth building.
+- **Starter deck (decided 2026-09-24): 10 cards** — 4× Lone Grunt, 3× Grunt Rush, 2× Big Push, plus **1 wildcard slot**: a random pick from Sapper, Runner or Tank at the start of each run. Decks aim for **about 10 cards** so draws vary more (hands rarely repeat). At ~14 cards played per castle under the new pacing, you cycle the deck about once per castle, so a newly won card shows up once or twice per castle. The wildcard makes each run lean a different way from castle 1 — demolition (Sapper: Attack Towers + bounties), raiding (Runner: towns + the all-towns bonus) or soak (Tank) — while the 9 fixed cards keep balance predictable. It varies the starting deck, not the rules (pillar 3). Future starter decks (post-alpha) also target ~10.
+- **Reward pool:** Swarm and Brute (**rare** — offered via the all-towns bonus), Tank, Runner and more Sappers (common). Swarm leaves the starter deck — it was only there for the pool stress test. With ~10-card decks each single reward matters less than in a 6-card deck, which is part of why the rares should feel strong and the trade step stays.
+- **Why the bonuses:** both reward greed over the straight castle rush. Razing every tower is the demolition route (units spent on defenses), and razing every town is the raiding route (units spent on detours for income). Beelining for the castle is the cheapest win but forfeits both. Alpha playtests show whether the greedy routes feel worth it. (Before 2026-09-25 the second bonus was "won with budget left", a speed reward that disappeared along with the budget.)
 
 ### Run Resources — decided
 **Decision: two persistent resources deplete across a run — horde strength and a run-wide wave budget.** Both always exist; what varies between runs is how much of each you start with and how fast each drains (see Run Modifiers below).
@@ -311,11 +320,12 @@ Stun is the first status effect, not the last — slows, DoT, armor reduction fo
 |---|---|
 | Castle Max HP | **40** |
 | Tower Range | **12** (was 6; doubled with the map on 2026-09-24 — see below) |
+| Castle gun range | **8** (was 6; set 2026-09-25 — a shorter-range last line of defense) |
 | Tower Fire Rate | 1 shot/sec |
 | Tower Damage | 15 per hit |
 | Monster Max HP | 30 |
 | Monster damage to castle | 10 |
-| Currency (hybrid budget, since 2026-09-24) | start 50 · +4/s · cap 100 · budget 360 · tower bounty 40 (was: a fixed 100 pool) |
+| Currency (hybrid budget, since 2026-09-24) | start 50 · +4/s · cap 100 · budget 360 · tower bounty 40 (was: a fixed 100 pool). **To be replaced by plunder** (decided 2026-09-25, §3 "Encounter economy") |
 | Hand size | 3 |
 
 **Cards (per-asset data):**
@@ -338,7 +348,7 @@ Starter deck in the current build: 3× Lone Grunt, 2× Grunt Rush, 1× Big Push,
 - **Rush test (Big Push + Grunt Rush, 15 grunts, all 100 currency, Focus Castle): lost.** Only 2 of 15 reached the castle (40 → 20 HP); the towers killed 13. The two cards were played ~4s apart, which spread the stream and favored the towers a little, but 2 of the needed 4 is not close. **At range 12, under the fixed 100 pool, the best affordable rush loses — towers beat every affordable combo.** Note that the hybrid budget's holding cap (100) also caps a single burst at 100, so under the new pacing a winning rush will have to be several overlapping bursts, or go through Attack Towers + bounties first.
 
 **First run with the hybrid budget (2026-09-24, Sandbox):** Attack Towers + steady card play destroyed both guard towers (+80 in bounties) and won in **52s** with 153 of 360 budget left — well under the ~2-minute target, so the encounter is now too easy that way. The Phase 1 balance pass starts from here.
-- **The castle also shoots.** `Castle_Placeholder` carries its own `Tower` component (range **6** — it never got the range-12 change, which was on `Tower.prefab` only), so there are three shooters, not two. Until 2026-09-24 that gun also counted as an attackable tower: Attack Towers monsters could "destroy" it, which hid the entire castle and made the encounter unwinnable (and paid a bounty). Fixed — a `Tower` on the castle is now the castle's own gun: it keeps shooting but can't be targeted or destroyed separately. **Decided 2026-09-24: castles keep their own defense.** Each castle's gun stats (range, damage, fire rate) come from its `CastleDefinition`, alongside tower strength. Its range (6) vs. the towers' (12) is for the balance pass.
+- **The castle also shoots.** `Castle_Placeholder` carries its own `Tower` component (range **6** — it never got the range-12 change, which was on `Tower.prefab` only), so there are three shooters, not two. Until 2026-09-24 that gun also counted as an attackable tower: Attack Towers monsters could "destroy" it, which hid the entire castle and made the encounter unwinnable (and paid a bounty). Fixed — a `Tower` on the castle is now the castle's own gun: it keeps shooting but can't be targeted or destroyed separately. **Decided 2026-09-24: castles keep their own defense.** Each castle's gun stats (range, damage, fire rate) come from its `CastleDefinition`, alongside tower strength. **Castle gun range set to 8** (2026-09-25): shorter than the towers' 12, so it works as a last line of defense close to the castle rather than a third tower.
 
 **Towers & attacking them (new, first-pass — untuned):** Tower `maxHealth` 100; fires a visible projectile (speed ~20). A monster ordered onto a tower: `attackRange` 1.5, `attacksPerSecond` 1, dealing its `damage` per hit. So one grunt (10 dmg) takes ~10s to fell a 100-HP tower alone; a group is much faster.
 
@@ -432,7 +442,7 @@ Parameters still to tune: tower HP, monster attack rate/range, stun duration & s
 - Where shared cloud storage for source art lives (§11).
 
 ### Resolved
-- ~~Pacing: fixed pool or regenerating income? Card-draw cadence?~~ → **hybrid budget**: regeneration up to a holding cap, a finite per-encounter budget, tower bounties paid on top; draw-on-play stays; ~2-minute encounters (§3 "Encounter pacing"). Decided 2026-09-24.
+- ~~Pacing: fixed pool or regenerating income? Card-draw cadence?~~ → **earned income ("plunder")**: a starting pot, coins per damage to towers and the castle, tower bounties, towns that pay finite tribute when destroyed, a holding cap, and ways to raise cap and plunder rate; no passive income and no timer; draw-on-play stays; ~2-minute encounters (§3 "Encounter economy"). Decided 2026-09-25. It replaces the hybrid budget (decided and built 2026-09-24), whose income timer was confusing.
 - ~~Starter deck size and contents?~~ → ~10 cards per deck for more draw variety; alpha starter deck 4× Lone Grunt, 3× Grunt Rush, 2× Big Push + a random wildcard (Sapper, Runner or Tank) per run for run-to-run variety; Swarm and Brute are rare rewards. Decided 2026-09-24.
 - ~~Alpha card roster?~~ → 8 cards: the current 4 + Brute, Tank, Sapper, Runner (§3 "Alpha run rules"). Decided 2026-09-24.
 - ~~Alpha target date?~~ → end of 2026, with a checkpoint on 19 October and a cut order if behind (§12.3). Decided 2026-09-24.
@@ -441,7 +451,7 @@ Parameters still to tune: tower HP, monster attack rate/range, stun duration & s
 - ~~Destruction feedback / fire and smoke scope?~~ → collapse moment + smoke/fire below half HP (towers and castle) + smoldering rubble, all in the alpha. Decided 2026-09-24.
 - ~~How do castles differ, and in what order?~~ → own layout per castle (one path each), `CastleDefinition` sets castle HP + tower strength, fixed order 1 → 2 → 3, pacing global (§3 "Alpha run rules"). Decided 2026-09-24.
 - ~~Who is the alpha for?~~ → private first (restricted itch.io link for playtesters), then a polished public build for the portfolio. Decided 2026-09-24.
-- ~~Run stakes for the alpha / between-castle choice?~~ → one lost castle ends the run; reward = pick 1 of 3 + trade 1 card; bonuses for razing all towers (4 choices) and winning with budget left (a rare offered). Run resources post-alpha (§3 "Alpha run rules"). Decided 2026-09-24.
+- ~~Run stakes for the alpha / between-castle choice?~~ → one lost castle ends the run; reward = pick 1 of 3 + trade 1 card; bonuses for razing all towers (4 choices) and razing all towns (a rare offered — was "won with budget left" until 2026-09-25). Run resources post-alpha (§3 "Alpha run rules"). Decided 2026-09-24.
 - ~~Mobile only, PC only, or both?~~ → **PC first** (WebGL on itch.io + Windows) for alpha/v1, **mobile after** (Android, then iOS); **designed touch-first** so the port stays cheap (§1 Platform, §8 rule). Decided 2026-09-24.
 - ~~Starting deck: random, or fixed pre-built?~~ → **pre-made starter decks** (a `DeckDefinition`), grown during the run.
 - ~~Towers destructible, suppressible, or rebuilding?~~ → **permanently destructible** within an encounter (built 2026-09-22/23); the run economy balances it.
@@ -524,9 +534,9 @@ The working checklist, organized around one milestone. §9 stays the place for d
 ### 12.2 Decisions (all made 2026-09-24)
 | # | Decision | Recommendation | Blocks |
 |---|---|---|---|
-| D1 | Pacing: fixed currency pool vs. regenerating income; card-draw cadence | ✅ **Decided 2026-09-24: hybrid budget** — regeneration up to a holding cap, finite per-encounter budget, tower bounty on top; draw-on-play; ~2-min encounters (§3 "Encounter pacing") | Balance pass, castle tuning |
+| D1 | Pacing: fixed currency pool vs. regenerating income; card-draw cadence | ✅ **Re-decided 2026-09-25: earned income ("plunder")** — a starting pot; damage to towers and the castle pays; tower bounty; towns (weak gun, beside the road) pay finite tribute when destroyed; a holding cap raised by razing towers; castle milestones raise the plunder rate; reward-screen economy upgrades; no passive income, no timer; draw-on-play; ~2-min encounters (§3 "Encounter economy"). Replaces the hybrid budget (2026-09-24) | Balance pass, castle tuning |
 | D2 | Alpha run length | ✅ **Decided 2026-09-24: 3 castles**, fixed order | Castle authoring |
-| D3 | Run resources (horde strength + wave budget) in the alpha? | ✅ **Decided 2026-09-24: post-alpha.** One lost castle ends the run; only the deck carries over. Reward: pick 1 of 3 + trade 1 card; bonuses for razing every tower (4 choices) and winning with budget left (a rare in the offer) (§3 "Alpha run rules") | Run scope |
+| D3 | Run resources (horde strength + wave budget) in the alpha? | ✅ **Decided 2026-09-24: post-alpha.** One lost castle ends the run; only the deck (and, since 2026-09-25, reward-screen economy upgrades) carries over. Reward: pick 1 of 3 + trade 1 card; bonuses for razing every tower (4 choices) and razing every town (a rare in the offer; was "budget left" until 2026-09-25) (§3 "Alpha run rules") | Run scope |
 | D4 | How castles differ | ✅ **Decided 2026-09-24:** a per-castle layout prefab (path, castle, towers, ground, road, spawn portal) split out of `GameplayRig`, chosen by a `CastleDefinition` asset that also sets castle HP and tower strength. One path per castle; fixed order; pacing stays global (§3 "Alpha run rules") | Run structure |
 | D5 | Scene flow | ✅ **Decided 2026-09-24: a menu scene + the encounter scene.** The menu scene (title + run-end) is the game's first scene; the encounter scene reloads once per castle with the next layout, and the reward screen is a panel inside it between castles. `RunManager` (persistent) carries the run. The encounter scenes still include `RunManager` via `SceneEnvironment`, so pressing Play in SampleScene/Sandbox keeps working without the menu | Run structure |
 | D6 | First platform + orientation | ✅ **Decided 2026-09-24: PC first** — WebGL on itch.io + Windows; landscape. Android after alpha, iOS later. Designed touch-first (§8 rule) so the port stays cheap | Builds, UI design |
@@ -545,8 +555,10 @@ The working checklist, organized around one milestone. §9 stays the place for d
 - [x] Cleanup (2026-09-24): `_to_delete/` in both repos (sent to the Recycle Bin), Sandbox's leftover `TestMonster` removed, and the one-shot editor scripts deleted (`GameplayRigSetup`, `TowerSetup`, `SceneSyncSetup`, `SwarmCardSetup` — still in git history). **Phase 0 complete.** [Kevin]
 
 **Phase 1 — the encounter feels complete (desktop is fine)** · 29 Sep – 19 Oct
-- [x] D1: hybrid budget built (2026-09-24) — regeneration + holding cap + encounter budget in `GameManager` (all five numbers in the Inspector); `Tower.Destroyed` event → `GameManager` pays the bounty; lose requires "budget spent"; HUD shows currency / cap and budget seconds left; `BountyPopup` shows a floating "+40"; `[EncounterEnd]` logs budget left and bounties earned. Tested: regeneration, cap, bounty above the cap, the "+40" pop-up, the lose timing and a win. Also fixed the castle-gun bug found while testing (§5). [Kevin]
-- [ ] Balance pass on one encounter with the new pacing; record in §5. Tune tower strength (range 12 currently beats every affordable rush — §5) together with the cap, regeneration, budget and bounty. **Explicit targets:** a well-timed rush wins, trickling loses, Swarm needs support. Then check castles 2 and 3 are still beatable within the same budget. [Kevin]
+- [x] D1: hybrid budget built (2026-09-24) — regeneration + holding cap + encounter budget in `GameManager` (all five numbers in the Inspector); `Tower.Destroyed` event → `GameManager` pays the bounty; lose requires "budget spent"; HUD shows currency / cap and budget seconds left; `BountyPopup` shows a floating "+40"; `[EncounterEnd]` logs budget left and bounties earned. Tested: regeneration, cap, bounty above the cap, the "+40" pop-up, the lose timing and a win. Also fixed the castle-gun bug found while testing (§5). *Superseded 2026-09-25 by plunder (next item); the cap, bounty and `BountyPopup` carry over.* [Kevin]
+- [ ] **D1 re-decided — plunder economy** (§3 "Encounter economy"): replace the regeneration + encounter budget in `GameManager` with the starting pot plus plunder (a damage event from `Tower.TakeDamage` / `Castle.TakeDamage` → coins at the plunder multiplier, up to the cap); +cap per razed tower; castle HP milestones at 75/50/25% → +plunder multiplier; the lose check becomes "no affordable card + nothing alive + no tribute owed"; HUD drops the budget timer; "+N" pop-ups for plunder (batched, so a swarm doesn't spam them). [Kevin]
+- [ ] **Towns:** a building beside the road with a weak gun and HP; joins the Attack Towers target list (order renamed "attack buildings"); pays no plunder while damaged, and on destruction starts a finite tribute drip (e.g. 60 over 30s). Needs to reuse `Tower`'s registry/targeting without paying a bounty or raising the cap — decide at build time between a `Tower` flag and a separate `Town` component. Place 1–2 on the current map for the balance pass. [Kevin · Art/UI: town model + rubble]
+- [ ] Balance pass on one encounter with the new economy; record in §5. Tune tower strength (range 12 currently beats every affordable rush — §5) together with the starting pot, plunder rate, cap, bounty, cap-per-tower, milestone bonus and town tribute. **Explicit targets:** a well-timed rush wins, trickling loses, Swarm needs support. Then check castles 2 and 3 are still beatable with the same economy numbers. [Kevin]
 - [ ] World-space tower HP bars (so Attack Towers progress is visible) + a hit flash when the castle takes damage. [Kevin; bar style: Art/UI]
 - [ ] D7: destruction feedback — replace "hide on death" with the rubble model + dust/debris burst + small camera shake + sound; smoke and fire once a tower or the castle is below half HP (a threshold hook in `Tower.TakeDamage` / `Castle.TakeDamage`); destroyed towers keep a smoldering loop on the rubble. [Art/UI: rubble, particles · Kevin: hook-up]
 - [ ] New cards from the roster (§3 "Alpha run rules"): **Brute**, **Tank** and **Runner** as pure data (existing overrides). [New dev — good first task: data + playtest]
@@ -561,11 +573,11 @@ The working checklist, organized around one milestone. §9 stays the place for d
 - [ ] Safe-area-aware layout, checked at 16:9, 19.5:9 and 20:9 in the Game view. [Art/UI + Kevin]
 
 **Phase 3 — minimal run** · 10 Nov – 7 Dec
-- [ ] D4: split the per-castle layout (path + waypoints, castle, towers, ground, road, spawn portal) out of `GameplayRig` into a layout prefab; add `CastleDefinition` (`[CreateAssetMenu(menuName = "Castle Attack/Castle")]`) with the layout prefab, castle HP, tower HP/damage/range multipliers and the castle gun's range/damage/fire rate. The encounter scene loads the current castle's layout from `RunManager`; Sandbox gets a castle picker for testing one castle directly. Update the §4 "Scene structure reference" table to match. [Kevin]
-- [ ] Author 3 escalating castles — e.g. 1 = today's (2 towers, 40 HP); 2 = 3 towers, more HP; 3 = 4 tougher towers. Tune by play. [Kevin: layout · Art/UI: visual pass later]
+- [ ] D4: split the per-castle layout (path + waypoints, castle, towers, towns, ground, road, spawn portal) out of `GameplayRig` into a layout prefab; add `CastleDefinition` (`[CreateAssetMenu(menuName = "Castle Attack/Castle")]`) with the layout prefab, castle HP, tower HP/damage/range multipliers and the castle gun's range/damage/fire rate. The encounter scene loads the current castle's layout from `RunManager`; Sandbox gets a castle picker for testing one castle directly. Update the §4 "Scene structure reference" table to match. [Kevin]
+- [ ] Author 3 escalating castles — e.g. 1 = today's (2 towers, 40 HP); 2 = 3 towers, more HP; 3 = 4 tougher towers — each with 1–3 towns. Tune by play. [Kevin: layout · Art/UI: visual pass later]
 - [ ] `RunState` gains current castle index + run deck (starts from `StarterDeck`, grows); `HandManager` takes the run deck instead of a fixed `DeckDefinition`. [Kevin]
 - [ ] Encounter reports its result to `RunManager`: win → reward → next castle; loss → run over. `GameOverManager` stays the single arbiter, with run-level outcomes added in a fixed priority order (§4 warning). [Kevin]
-- [ ] Reward screen (§3 "Alpha run rules"): pick 1 of 3 from a `CardPool` asset (4 with the all-towers bonus; a rare included with the budget-left bonus) + optional trade of 1 deck card. Needs a `rarity` field on `CardDefinition`. [Kevin: logic · Art/UI: screen]
+- [ ] Reward screen (§3 "Alpha run rules"): pick 1 of 3 from a `CardPool` asset (4 with the all-towers bonus; a rare included with the all-towns bonus), with economy upgrades (+cap / +plunder %) mixed into the offer, + optional trade of 1 deck card. Needs a `rarity` field on `CardDefinition`; `RunState` keeps the picked upgrades. [Kevin: logic · Art/UI: screen]
 - [ ] **Player-visible path** — a road/trail along each castle's waypoints, plus a spawn portal. Today the path only exists as an editor gizmo; players can't see where monsters will walk. [Art/UI: look · Kevin: placement per layout]
 - [ ] "Castle N of 3" indicator (HUD or a short transition card between castles). [Art/UI + Kevin]
 - [ ] D5: a **menu scene** with the title screen ("Start Run") and the run-end screen (castles cleared, win/loss, "New Run"), first in Build Settings; it holds a `SceneEnvironment` instance so `RunManager` exists from the start. Retry now means a new run; the R-key scene reload stays as a dev tool. Update the §4 "Scene structure reference" table. [Kevin + Art/UI]
@@ -588,6 +600,7 @@ The working checklist, organized around one milestone. §9 stays the place for d
 
 ### 12.4 After alpha (explicitly deferred)
 - **Two run resources** — horde strength + run-wide wave budget (§3). Open: waves-cleared vs. elapsed time (leaning waves-cleared — ties to the spawn/despawn events the economy already uses); partial replenishment rate.
+- **Economy cards** — e.g. a **Looter** unit (double plunder) and a **War Chest** card (+cap), so greed vs. force becomes a deck choice (§3 "Encounter economy"). Decided 2026-09-25 to come right after the alpha; Phase 1's card list is already full.
 - **Run modifiers** — start with the 3 named (blitz/siege/balanced) before authoring more (§7 tuning risk).
 - **Stun** — build the general status-effect system (§4 "Anticipated") first; stun is its first effect.
 - **Flying units** — build the path-blocking obstacle first, so flyer balance is tuned against real friction.
@@ -602,4 +615,5 @@ The working checklist, organized around one milestone. §9 stays the place for d
 - **2026-09-23/24** — map doubled; `PathVisualizer`; scenes synced into `GameplayRig` + new `SceneEnvironment` prefab. Commit `46d13c9`.
 - **2026-09-24** — Swarm card + `unitScale` override; both pools prewarmed; tower range 6 → 12 (§5).
 - **2026-09-24** — Phase 0 done (rush test, overlapping-projectile playtest, cleanup). Phase 1 started: hybrid budget built; castle-gun bug fixed.
+- **2026-09-25** — castle gun range 6 → 8. D1 re-decided: the hybrid budget's income timer was confusing, so it's replaced by earned income (plunder, towns, economy growth), not yet built.
 - **Incident note:** a hand-edited `ProjectilePool.prewarmPrefab` reference in `GameplayRig.prefab`'s YAML caused an `InvalidCastException` on scene start (fixed by clearing it + adding a try/catch around `Instantiate` in both `ProjectilePool` and `MonsterSpawner`'s `CreateNew`). Lesson: prefab asset references get assigned via the Inspector or the editor API, not hand-written YAML. *Root cause, found later:* a field referencing a prefab needs the fileID of the prefab's **root GameObject** (e.g. `TestMonster` = `1640811771736085792`); the hand-written `100100000` points at the prefab asset itself, which isn't a `GameObject` — hence the invalid cast.
