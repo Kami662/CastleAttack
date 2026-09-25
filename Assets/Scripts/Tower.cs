@@ -30,6 +30,9 @@ public class Tower : MonoBehaviour
     /// <summary>Raised once when a tower is destroyed (GameManager pays the bounty).</summary>
     public static event System.Action<Tower> Destroyed;
 
+    /// <summary>Raised on every hit with the damage actually dealt (overkill excluded); GameManager pays plunder for it.</summary>
+    public static event System.Action<Tower, int> Damaged;
+
     // A Tower on the castle itself is the castle's own gun, not a separate
     // defense: it never joins StandingTowers, so Attack Towers never targets it
     // and it can't be destroyed (and hide the castle) on its own. The castle
@@ -95,7 +98,9 @@ public class Tower : MonoBehaviour
     public void TakeDamage(int amount)
     {
         if (IsDestroyed || isCastleGun) return;
+        int dealt = Mathf.Min(amount, health);
         health -= amount;
+        Damaged?.Invoke(this, dealt);
         if (health <= 0) DestroyTower();
     }
 

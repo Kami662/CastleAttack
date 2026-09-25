@@ -7,6 +7,9 @@ public class Castle : MonoBehaviour
     public bool isDestroyed = false;
 
 
+    /// <summary>Raised on every hit with the damage actually dealt (overkill excluded); GameManager pays plunder and checks milestones.</summary>
+    public static event System.Action<Castle, int> Damaged;
+
     void Awake()
     {
         currentHP = maxHP;
@@ -16,6 +19,7 @@ public class Castle : MonoBehaviour
     {
         if (currentHP <= 0) return;
 
+        int dealt = Mathf.Min(amount, currentHP);
         currentHP -= amount;
         Debug.Log($"Castle took {amount} damage. HP: {currentHP}/{maxHP}");
 
@@ -24,6 +28,9 @@ public class Castle : MonoBehaviour
             currentHP = 0;
             OnCastleDestroyed();
         }
+
+        // After the destroyed check, so listeners see the final HP and isDestroyed.
+        Damaged?.Invoke(this, dealt);
     }
 
     void OnCastleDestroyed()

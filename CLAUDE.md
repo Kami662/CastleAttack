@@ -81,13 +81,15 @@ visible `Projectile` (placeholder sphere, arrow art later),
 `UnitCommander` global order FocusCastle/AttackTowers on dev keys C/T, with
 `MonsterMover` diverting to the nearest standing tower on AttackTowers.
 
-**Next:** the rest of GDD §12 phase 1. **D1 was re-decided 2026-09-25:** the built
-hybrid budget (regeneration + income timer) is being replaced by **earned income
-("plunder")** — a starting pot, coins per damage to towers/castle, tower bounty,
-a holding cap raised by razing towers, castle-HP milestones that raise the plunder
-rate, and **towns** (weak-gun buildings beside the road that pay finite tribute when
-destroyed). No passive income, no timer; lose = no affordable card + nothing alive +
-no tribute owed (GDD §3 "Encounter economy"). Build that before the balance pass. Castles have their
+**Next:** the rest of GDD §12 phase 1. **D1 was re-decided 2026-09-25** and the
+hybrid budget replaced by **earned income ("plunder")**, built the same day:
+`Tower.Damaged`/`Castle.Damaged` → `GameManager` pays coins per damage dealt (up to
+the cap), the bounty goes above the cap, each razed tower raises the cap, castle HP
+milestones raise the plunder rate. No passive income, no timer; lose = no affordable
+card + nothing alive (GDD §3 "Encounter economy"). **Still to build: towns** (weak-gun
+buildings beside the road that pay finite tribute when destroyed, and add a "no
+tribute owed" clause to the lose check), then the balance pass — first run findings
+(cap wastes plunder, possible unaffordable-hand soft-lock) are in GDD §5. Castles have their
 own defense by design: a `Tower` component on the castle (range 8) that can't be
 targeted or destroyed separately; per-castle gun stats come from `CastleDefinition` (D4). All alpha
 decisions D1–D7 are made (GDD §12.2); flying units, stun, run resources and the

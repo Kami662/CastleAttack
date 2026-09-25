@@ -16,10 +16,13 @@ public class BountyPopup : MonoBehaviour
     private Color baseColor;
     private float age;
 
-    public static void Show(Vector3 worldPosition, string label)
+    static readonly Color Gold = new Color(1f, 0.84f, 0.2f);
+
+    /// <summary>Gold by default; plunder and milestone pop-ups pass their own color and height so they don't stack on a bounty.</summary>
+    public static void Show(Vector3 worldPosition, string label, Color? color = null, float height = StartHeight)
     {
         var go = new GameObject("BountyPopup");
-        go.transform.position = worldPosition + Vector3.up * StartHeight;
+        go.transform.position = worldPosition + Vector3.up * height;
 
         var popup = go.AddComponent<BountyPopup>();
         popup.text = go.AddComponent<TextMeshPro>();
@@ -27,7 +30,7 @@ public class BountyPopup : MonoBehaviour
         popup.text.fontSize = 24;
         popup.text.fontStyle = FontStyles.Bold;
         popup.text.alignment = TextAlignmentOptions.Center;
-        popup.text.color = new Color(1f, 0.84f, 0.2f);
+        popup.text.color = color ?? Gold;
         popup.baseColor = popup.text.color;
         popup.FaceCamera();
     }

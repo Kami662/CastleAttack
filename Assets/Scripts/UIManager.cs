@@ -18,10 +18,11 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
-        string budget = gameManager.BudgetSpent
-            ? "spent"
-            : Mathf.CeilToInt(gameManager.BudgetRemaining / gameManager.regenPerSecond) + "s";
-        currencyText.text = $"Currency: {gameManager.Currency} / {gameManager.holdingCap}   Budget: {budget}";
+        // The plunder rate only shows once a castle milestone has raised it.
+        string plunder = gameManager.MilestonesReached > 0
+            ? $"   Plunder x{gameManager.PlunderMultiplier:0.##}"
+            : "";
+        currencyText.text = $"Currency: {gameManager.Currency} / {gameManager.HoldingCap}{plunder}";
         castleHPText.text = $"Castle HP: {castle.currentHP}/{castle.maxHP}";
     }
 }
