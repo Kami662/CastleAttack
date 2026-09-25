@@ -1871,9 +1871,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DefenderPost
   footmanPrefab: {fileID: 5945313005720962509, guid: 510fb066bd1d5de4b83bd2124d7c414d, type: 3}
   archerPrefab: {fileID: 6094903622259746559, guid: cbfac04aa0f52004ea3b40028be136c8, type: 3}
-  footmen: 6
-  archers: 2
-  reinforcementsPerAlarmLevel: 2
+  footmen: 4
+  archers: 1
+  reinforcementsPerAlarmLevel: 1
   maxOut: 4
   releaseInterval: 2
   alertRange: 10
