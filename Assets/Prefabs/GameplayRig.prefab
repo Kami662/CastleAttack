@@ -314,6 +314,7 @@ MonoBehaviour:
   milestonePlunderBonus: 0.25
   townTribute: 60
   tributeSeconds: 30
+  fastWinSeconds: 90
 --- !u!1 &3137627422863096196
 GameObject:
   m_ObjectHideFlags: 0
@@ -1718,6 +1719,7 @@ GameObject:
   - component: {fileID: 8310925908687457645}
   - component: {fileID: 4396833955402888233}
   - component: {fileID: 2415391541572649975}
+  - component: {fileID: 1283670702820999795}
   m_Layer: 0
   m_Name: Castle_Placeholder
   m_TagString: Untagged
@@ -1832,6 +1834,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Castle
   maxHP: 100
   currentHP: 100
+  armor: 3
   isDestroyed: 0
 --- !u!114 &2415391541572649975
 MonoBehaviour:
@@ -1848,10 +1851,35 @@ MonoBehaviour:
   range: 8
   fireRate: 1
   damage: 15
+  targetsPerShot: 1
   projectilePrefab: {fileID: 0}
   firePoint: {fileID: 0}
   isTown: 0
   maxHealth: 100
+  armor: 0
+--- !u!114 &1283670702820999795
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8972469813974348030}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f175f086d494d0a4c8ebfd166796f188, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DefenderPost
+  footmanPrefab: {fileID: 5945313005720962509, guid: 510fb066bd1d5de4b83bd2124d7c414d, type: 3}
+  archerPrefab: {fileID: 6094903622259746559, guid: cbfac04aa0f52004ea3b40028be136c8, type: 3}
+  footmen: 6
+  archers: 2
+  reinforcementsPerAlarmLevel: 2
+  maxOut: 4
+  releaseInterval: 2
+  alertRange: 10
+  leashRadius: 14
+  spawnRadius: 2.5
+  standHeight: 0.9
 --- !u!1001 &672342748610913551
 PrefabInstance:
   m_ObjectHideFlags: 0

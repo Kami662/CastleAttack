@@ -4,6 +4,8 @@ public class Castle : MonoBehaviour
 {
     public int maxHP = 100;
     public int currentHP;
+    [Tooltip("Flat damage cut from every hit that reaches the castle (min 1 per hit).")]
+    public int armor;
     public bool isDestroyed = false;
 
 
@@ -19,9 +21,10 @@ public class Castle : MonoBehaviour
     {
         if (currentHP <= 0) return;
 
-        int dealt = Mathf.Min(amount, currentHP);
-        currentHP -= amount;
-        Debug.Log($"Castle took {amount} damage. HP: {currentHP}/{maxHP}");
+        int taken = Armor.Reduce(amount, armor);
+        int dealt = Mathf.Min(taken, currentHP);
+        currentHP -= taken;
+        Debug.Log($"Castle took {taken} damage ({amount} - armor {armor}). HP: {currentHP}/{maxHP}");
 
         if (currentHP <= 0)
         {

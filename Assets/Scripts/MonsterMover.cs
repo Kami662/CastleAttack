@@ -29,6 +29,10 @@ public class MonsterMover : MonoBehaviour
     private Tower targetTower;
     private float attackCooldown;
 
+    // Per-card tower traits (Sapper / Stunner). Per-life state: reset in OnSpawn.
+    private float towerDamageMultiplier = 1f;
+    private float stunSeconds;
+
     [HideInInspector] public GameObject SourcePrefab;
     public bool IsAlive { get; private set; }
 
@@ -36,6 +40,10 @@ public class MonsterMover : MonoBehaviour
     // per-card-group unit orders (GDD §8), so that system doesn't need to
     // retrofit an identity tag onto every already-alive monster later.
     public CardDefinition SourceCard { get; private set; }
+
+    /// <summary>The group (one card play) this monster follows orders with. Null = none, so
+    /// the default order applies. Per-life state: reset in OnSpawn.</summary>
+    public UnitGroup Group { get; private set; }
 
     void OnEnable() { MonsterSpawner.Register(this); }
     void OnDisable() { MonsterSpawner.Unregister(this); }
@@ -67,8 +75,11 @@ public class MonsterMover : MonoBehaviour
         currentWaypointIndex = 0;
         targetTower = null;
         attackCooldown = 0f;
+        towerDamageMultiplier = 1f;
+        stunSeconds = 0f;
         IsAlive = true;
         SourceCard = null;
+        Group = null;
         enabled = true;
     }
 
@@ -82,6 +93,14 @@ public class MonsterMover : MonoBehaviour
         transform.localScale = defaultScale * scale;
     }
 
+    /// <summary>Per-card tower traits: a damage multiplier against towers/towns
+    /// (Sapper) and a stun applied to a tower on each hit (Stunner).</summary>
+    public void ApplyTowerTraits(float damageMultiplier, float stun)
+    {
+        towerDamageMultiplier = damageMultiplier;
+        stunSeconds = stun;
+    }
+
     /// <summary>Called by MonsterSpawner right after OnSpawn, so a reused
     /// monster never keeps a previous card's identity.</summary>
     public void SetSourceCard(CardDefinition card)
@@ -89,14 +108,63 @@ public class MonsterMover : MonoBehaviour
         SourceCard = card;
     }
 
+    /// <summary>Called by MonsterSpawner right after OnSpawn: which group's orders this monster follows.</summary>
+    public void SetGroup(UnitGroup group)
+    {
+        Group = group;
+    }
+
     void Update()
     {
-        // Ordered to attack towers: go after the nearest standing one. If none
-        // are left, fall through to normal path-following.
-        if (UnitCommander.Current == UnitCommander.Order.AttackTowers && AttackNearestTower())
+        // A defender in reach comes first: the monster stops and fights it, which
+        // is what makes footmen real blockers (GDD §3 "Defenders").
+        if (FightNearestDefender()) return;
+
+        // Each monster follows its group's order (so a card's units can be sent
+        // to different targets); no group means the default order.
+        UnitCommander.Order order = Group != null ? Group.Order : UnitCommander.DefaultOrder;
+
+        // Halt: stand still. (A defender in reach is still fought, above.)
+        if (order == UnitCommander.Order.Halt) return;
+
+        // Attack towers: go after the nearest standing one. If none are left,
+        // fall through to normal path-following.
+        if (order == UnitCommander.Order.AttackTowers && AttackNearestTower())
             return;
 
         FollowPath();
+    }
+
+    // Returns true if a defender was in reach this frame. Shares attackRange,
+    // attacksPerSecond and attackCooldown with tower attacks (all reset in OnSpawn).
+    bool FightNearestDefender()
+    {
+        var defenders = Defender.Active;
+        if (defenders.Count == 0) return false;
+
+        Defender foe = null;
+        float bestSqr = attackRange * attackRange;
+        Vector3 pos = transform.position;
+        for (int i = 0; i < defenders.Count; i++)
+        {
+            Defender d = defenders[i];
+            if (d == null || !d.IsAlive) continue;
+
+            // Ground-plane distance: soldiers stand at a different height than monsters.
+            float dx = d.transform.position.x - pos.x;
+            float dz = d.transform.position.z - pos.z;
+            float sqr = dx * dx + dz * dz;
+            if (sqr <= bestSqr) { bestSqr = sqr; foe = d; }
+        }
+        if (foe == null) return false;
+
+        attackCooldown -= Time.deltaTime;
+        if (attackCooldown <= 0f)
+        {
+            foe.TakeDamage(damage);
+            attackCooldown = 1f / Mathf.Max(0.01f, attacksPerSecond);
+        }
+        return true;
     }
 
     // Returns true if there was a tower to deal with this frame.
@@ -117,7 +185,8 @@ public class MonsterMover : MonoBehaviour
             attackCooldown -= Time.deltaTime;
             if (attackCooldown <= 0f)
             {
-                targetTower.TakeDamage(damage);
+                targetTower.TakeDamage(Mathf.RoundToInt(damage * towerDamageMultiplier));
+                if (stunSeconds > 0f) targetTower.Stun(stunSeconds);
                 attackCooldown = 1f / Mathf.Max(0.01f, attacksPerSecond);
             }
         }

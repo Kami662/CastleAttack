@@ -55,4 +55,16 @@ public class CardDefinition : ScriptableObject
     [Tooltip("Size multiplier on the monster prefab (only used when Override Stats is on). " +
              "Small swarm units read as a mass; a big boss reads as a boss.")]
     public float unitScale = 1f;
+
+    [Header("Tower traits (optional; work with or without Override Stats)")]
+    [Min(1f)]
+    [Tooltip("Multiplier on the damage these monsters deal to towers and towns (not the castle). " +
+             "1 = normal. The Sapper uses 4: a tower breaker.")]
+    public float towerDamageMultiplier = 1f;
+
+    [Min(0f)]
+    [Tooltip("Seconds a tower is stunned when one of these monsters hits it. 0 = no stun. " +
+             "A stunned tower stops shooting and only releases footmen. It doesn't refresh " +
+             "while stunned, and is immune for a few seconds afterwards (anti stun-lock).")]
+    public float stunSeconds = 0f;
 }

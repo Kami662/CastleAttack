@@ -50,7 +50,7 @@ public class GameOverManager : MonoBehaviour
         // Cheap now, useful once the run economy needs tuning data (GDD §7:
         // "one resource never binds" is the risk to watch for).
         int currencyLeft = gameManager != null ? gameManager.Currency : -1;
-        Debug.Log($"[EncounterEnd] WIN — castle destroyed. Currency left: {currencyLeft}. {EconomySummary()} Time: {Time.timeSinceLevelLoad:F1}s.");
+        Debug.Log($"[EncounterEnd] WIN — castle destroyed. Currency left: {currencyLeft}. {EconomySummary()} Time: {Time.timeSinceLevelLoad:F1}s. {WinBonuses()}");
         gameOverText.text = "YOU WIN!";
         gameOverText.gameObject.SetActive(true);
         if (retryButton != null) retryButton.SetActive(true);
@@ -67,6 +67,29 @@ public class GameOverManager : MonoBehaviour
         gameOverText.gameObject.SetActive(true);
         if (retryButton != null) retryButton.SetActive(true);
         Time.timeScale = 0f;
+    }
+
+    // Which reward-screen bonuses this win earns (GDD §3 "Alpha run rules").
+    // Logged for now; the reward screen will read the same rules in Phase 3.
+    // Each of all-towers / fast / blitz adds a card choice; all-towns adds a rare.
+    string WinBonuses()
+    {
+        if (gameManager == null) return "";
+
+        bool allTowers = gameManager.TotalTowers > 0 && gameManager.TowersRazed >= gameManager.TotalTowers;
+        bool allTowns = gameManager.TotalTowns > 0 && gameManager.TownsRazed >= gameManager.TotalTowns;
+        bool blitz = gameManager.TowersRazed == 0 && gameManager.TownsRazed == 0;
+        bool fast = Time.timeSinceLevelLoad <= gameManager.fastWinSeconds;
+
+        int choices = 3 + (allTowers ? 1 : 0) + (fast ? 1 : 0) + (blitz ? 1 : 0);
+        var earned = new System.Collections.Generic.List<string>();
+        if (allTowers) earned.Add("all towers");
+        if (allTowns) earned.Add("all towns (rare)");
+        if (fast) earned.Add($"fast win (<= {gameManager.fastWinSeconds:0}s)");
+        if (blitz) earned.Add("blitz");
+
+        return $"Bonuses: {(earned.Count > 0 ? string.Join(", ", earned) : "none")} -> {choices} card choices" +
+               $" (towers razed {gameManager.TowersRazed}/{gameManager.TotalTowers}, towns {gameManager.TownsRazed}/{gameManager.TotalTowns}).";
     }
 
     string EconomySummary()

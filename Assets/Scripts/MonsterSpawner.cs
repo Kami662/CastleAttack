@@ -113,14 +113,19 @@ public class MonsterSpawner : MonoBehaviour
     private IEnumerator SpawnGroup(CardDefinition card, Vector3 position, Transform[] waypoints)
     {
         int count = Mathf.Max(1, card.spawnCount);
+        UnitGroup group = UnitCommander.CreateGroup(card, count); // one group per card play
         for (int i = 0; i < count; i++)
         {
             MonsterMover m = Spawn(card.monsterPrefab, position, waypoints);
+            if (m == null) group.MemberSkipped();
             if (m != null)
             {
+                group.MemberSpawned();
+                m.SetGroup(group);
                 m.SetSourceCard(card);
                 if (card.overrideStats)
                     m.ApplyStats(card.unitMaxHP, card.unitDamage, card.unitSpeed, card.unitScale);
+                m.ApplyTowerTraits(card.towerDamageMultiplier, card.stunSeconds);
             }
 
             if (card.spawnInterval > 0f && i < count - 1)
@@ -145,6 +150,7 @@ public class MonsterSpawner : MonoBehaviour
             return;
         }
 
+        mover.Group?.MemberGone(); // every removal goes through here, so the group's count stays right
         mover.gameObject.SetActive(false); // OnDisable -> Unregister
 
         if (mover.SourcePrefab != null)

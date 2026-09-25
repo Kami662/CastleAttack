@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9bef84ce38051349a8053e2156486e8, type: 3}
+  m_Name: Card_Sapper
+  m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
+  cardName: Sapper
+  description: Three tower breakers. Weak fighters, but each hit on a tower or town deals four times the damage. Best with the Attack Towers order.
+  spawnCost: 50
+  monsterPrefab: {fileID: 1640811771736085792, guid: 26c6b7f141024dd40b027f8719c05869, type: 3}
+  spawnCount: 3
+  spawnInterval: 0.3
+  overrideStats: 1
+  unitMaxHP: 25
+  unitDamage: 10
+  unitSpeed: 3
+  unitScale: 1
+  towerDamageMultiplier: 4
+  stunSeconds: 0

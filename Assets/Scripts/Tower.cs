@@ -7,6 +7,9 @@ public class Tower : MonoBehaviour
     public float range = 6f;
     public float fireRate = 1f; // shots per second
     public int damage = 15;
+    [Tooltip("Each shot is a volley at this many of the nearest monsters in range (each hit " +
+             "deals full damage). Towers and the castle use 2; towns use 1. Max 4.")]
+    [Range(1, MaxTargets)] public int targetsPerShot = 1;
 
     [Header("Projectile")]
     [Tooltip("Placeholder shot prefab (a small sphere for now; swap for an arrow later). " +
@@ -23,10 +26,35 @@ public class Tower : MonoBehaviour
 
     [Header("Health (destructible)")]
     public int maxHealth = 100;
+    [Tooltip("Flat damage cut from every hit (min 1 per hit). Towers are armored; towns are not.")]
+    public int armor;
     private int health;
     public bool IsDestroyed { get; private set; }
 
+    [Header("Alarm repair (GDD §3 \"Alarm\")")]
+    [Tooltip("HP regained per second for each alarm level, once the tower hasn't been hit for " +
+             "Repair Delay seconds. Punishes hit-and-run and slow, split attacks.")]
+    public float repairPerAlarmLevel = 4f;
+    public float repairDelaySeconds = 4f;
+    private float lastHitTime = -999f;
+    private float repairCarry;
+
+    [Header("Stun")]
+    [Tooltip("After a stun ends, the tower ignores new stuns for this many seconds " +
+             "(anti stun-lock: a stun never refreshes while active either).")]
+    public float stunImmunitySeconds = 3f;
+    private float stunTimer;
+    private float stunImmunityTimer;
+
+    /// <summary>A stunned tower doesn't shoot, and its DefenderPost releases only footmen.</summary>
+    public bool IsStunned => stunTimer > 0f;
+
     private float fireCooldown = 0f;
+
+    // Scratch buffers for picking a volley's targets, reused so firing never allocates.
+    private const int MaxTargets = 4;
+    private readonly MonsterMover[] volley = new MonsterMover[MaxTargets];
+    private readonly float[] volleySqrDist = new float[MaxTargets];
 
     // Live registry of standing towers, so monsters ordered to attack towers can
     // find the nearest one without scanning the scene. Mirrors ActiveMonsters.
@@ -66,16 +94,42 @@ public class Tower : MonoBehaviour
     {
         if (IsDestroyed) return;
 
+        Repair(Time.deltaTime);
+
+        if (stunTimer > 0f)
+        {
+            stunTimer -= Time.deltaTime;
+            if (stunTimer <= 0f) stunImmunityTimer = stunImmunitySeconds;
+            return; // stunned: no shooting, and the fire cooldown doesn't tick
+        }
+        if (stunImmunityTimer > 0f) stunImmunityTimer -= Time.deltaTime;
+
         fireCooldown -= Time.deltaTime;
         if (fireCooldown <= 0f)
         {
-            MonsterMover target = FindClosestMonsterInRange();
-            if (target != null)
+            // One volley: a shot at each of the nearest monsters in range, with
+            // the cooldown counted once for the whole volley.
+            int count = FindClosestMonstersInRange();
+            if (count > 0)
             {
-                Fire(target);
+                for (int i = 0; i < count; i++) Fire(volley[i]);
                 fireCooldown = 1f / fireRate;
             }
         }
+    }
+
+    // Alarm repair: while the alarm is up, an undisturbed tower heals itself.
+    void Repair(float deltaTime)
+    {
+        int level = GameManager.AlarmLevel;
+        if (level <= 0 || isCastleGun || health >= maxHealth) return;
+        if (Time.time - lastHitTime < repairDelaySeconds) return;
+
+        repairCarry += repairPerAlarmLevel * level * deltaTime;
+        int whole = Mathf.FloorToInt(repairCarry);
+        if (whole <= 0) return;
+        repairCarry -= whole;
+        health = Mathf.Min(maxHealth, health + whole);
     }
 
     void Fire(MonsterMover target)
@@ -100,12 +154,30 @@ public class Tower : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Stun this tower for the given time. Ignored while already stunned (no
+    /// refreshing) and during the immunity window after a stun, so a group of
+    /// Stunners can't lock a tower down permanently.
+    /// </summary>
+    public void Stun(float seconds)
+    {
+        if (IsDestroyed || isCastleGun || seconds <= 0f) return;
+        if (stunTimer > 0f || stunImmunityTimer > 0f) return;
+
+        stunTimer = seconds;
+        BountyPopup.Show(transform.position, "STUNNED", new Color(0.5f, 0.8f, 1f), 4f);
+        Debug.Log($"{name} stunned for {seconds:0.#}s.");
+    }
+
     /// <summary>Called by monsters attacking this tower.</summary>
     public void TakeDamage(int amount)
     {
         if (IsDestroyed || isCastleGun) return;
-        int dealt = Mathf.Min(amount, health);
-        health -= amount;
+        // Armor first, then overkill: plunder is paid on what actually landed.
+        int taken = Armor.Reduce(amount, armor);
+        int dealt = Mathf.Min(taken, health);
+        health -= taken;
+        lastHitTime = Time.time;
         Damaged?.Invoke(this, dealt);
         if (health <= 0) DestroyTower();
     }
@@ -121,10 +193,14 @@ public class Tower : MonoBehaviour
         gameObject.SetActive(false);
     }
 
-    MonsterMover FindClosestMonsterInRange()
+    // Fills `volley` with the nearest monsters in range (up to targetsPerShot),
+    // nearest first, and returns how many it found. A small insertion sort over
+    // the buffer: at most 4 slots, so no allocation and no full sort.
+    int FindClosestMonstersInRange()
     {
-        MonsterMover closest = null;
-        float closestSqr = range * range;
+        int want = Mathf.Clamp(targetsPerShot, 1, MaxTargets);
+        float rangeSqr = range * range;
+        int count = 0;
 
         var monsters = MonsterSpawner.ActiveMonsters;
         for (int i = 0; i < monsters.Count; i++)
@@ -133,12 +209,21 @@ public class Tower : MonoBehaviour
             if (monster == null) continue;
 
             float sqrDist = (monster.transform.position - transform.position).sqrMagnitude;
-            if (sqrDist <= closestSqr)
+            if (sqrDist > rangeSqr) continue;
+            if (count == want && sqrDist >= volleySqrDist[want - 1]) continue; // buffer full, and this one is farther
+
+            // Drop into its sorted place; when full it overwrites the farthest slot.
+            int slot = count < want ? count : want - 1;
+            while (slot > 0 && volleySqrDist[slot - 1] > sqrDist)
             {
-                closestSqr = sqrDist;
-                closest = monster;
+                volley[slot] = volley[slot - 1];
+                volleySqrDist[slot] = volleySqrDist[slot - 1];
+                slot--;
             }
+            volley[slot] = monster;
+            volleySqrDist[slot] = sqrDist;
+            if (count < want) count++;
         }
-        return closest;
+        return count;
     }
 }

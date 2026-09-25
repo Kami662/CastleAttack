@@ -26,7 +26,8 @@ public class UIManager : MonoBehaviour
         string tribute = gameManager.TributePending
             ? $"   Tribute +{gameManager.TributePerSecond:0.#}/s"
             : "";
-        currencyText.text = $"Currency: {gameManager.Currency} / {gameManager.HoldingCap}{plunder}{tribute}";
+        string alarm = GameManager.AlarmLevel > 0 ? $"   Alarm {GameManager.AlarmLevel}" : "";
+        currencyText.text = $"Currency: {gameManager.Currency} / {gameManager.HoldingCap}{plunder}{tribute}{alarm}";
         castleHPText.text = $"Castle HP: {castle.currentHP}/{castle.maxHP}";
     }
 }

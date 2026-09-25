@@ -31,6 +31,24 @@ public class GameManager : MonoBehaviour
     [Tooltip("How long one town's tribute takes to pay out.")]
     public float tributeSeconds = 30f;
 
+    [Header("Alarm (GDD §3 \"Alarm\")")]
+    [Tooltip("The alarm starts when the first card is played and rises one level every this many " +
+             "seconds. Towers repair between hits, soldier posts release faster, and the castle " +
+             "calls in reinforcements — so slow, split attacks get harder over time.")]
+    public float alarmStepSeconds = 30f;
+    [Min(1)] public int alarmMaxLevel = 4;
+
+    /// <summary>Current alarm level (0 until the first card is played). Static so towers and
+    /// soldier posts can read it without a scene scan; reset in Awake.</summary>
+    public static int AlarmLevel { get; private set; }
+    private float alarmClock;
+    private bool alarmRunning;
+
+    [Header("Win bonuses (GDD §3 \"Alpha run rules\")")]
+    [Tooltip("Win within this many seconds for the fast-win bonus. Becomes a per-castle " +
+             "value on CastleDefinition later; ~75% of the 2-minute target to start.")]
+    public float fastWinSeconds = 90f;
+
     public int Currency { get; private set; }
     public int CapBonus { get; private set; }
     public int HoldingCap => holdingCap + CapBonus;
@@ -43,6 +61,11 @@ public class GameManager : MonoBehaviour
     public int BountiesEarned { get; private set; }
     public int TributeEarned { get; private set; }
     public int TownsRazed { get; private set; }
+    public int TowersRazed { get; private set; }
+
+    // What the encounter started with, so "raze every tower / town" can be judged.
+    public int TotalTowers { get; private set; }
+    public int TotalTowns { get; private set; }
 
     // Plunder below one whole coin, carried to the next hit.
     private float plunderCarry;
@@ -68,6 +91,17 @@ public class GameManager : MonoBehaviour
     void Awake()
     {
         Currency = startingCurrency;
+        AlarmLevel = 0; // static: it survives scene reloads, so reset it here
+    }
+
+    // Start (not Awake): every Tower has registered itself in OnEnable by now.
+    void Start()
+    {
+        foreach (Tower t in Tower.StandingTowers)
+        {
+            if (t.isTown) TotalTowns++;
+            else TotalTowers++;
+        }
     }
 
     void OnEnable()
@@ -88,6 +122,7 @@ public class GameManager : MonoBehaviour
     {
         PayTribute(Time.deltaTime);
         FlushPlunderPopup();
+        TickAlarm(Time.deltaTime);
 
         // Dev shortcut: number keys 1-5 play the matching hand slot.
         // The real input is tapping a card (placeholder UI: HandDebugUI).
@@ -150,6 +185,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        TowersRazed++;
         CapBonus += capPerRazedTower;
         Currency += towerBounty; // on top of the cap
         BountiesEarned += towerBounty;
@@ -170,6 +206,18 @@ public class GameManager : MonoBehaviour
                              PlunderColor, PlunderPopupHeight + 3f);
             Debug.Log($"Castle milestone {MilestonesReached}/{castleMilestones.Length} — plunder x{PlunderMultiplier:0.##}");
         }
+    }
+
+    void TickAlarm(float deltaTime)
+    {
+        if (!alarmRunning) return;
+
+        alarmClock += deltaTime;
+        int level = Mathf.Min(alarmMaxLevel, Mathf.FloorToInt(alarmClock / Mathf.Max(1f, alarmStepSeconds)));
+        if (level == AlarmLevel) return;
+
+        AlarmLevel = level;
+        Debug.Log($"ALARM level {level}/{alarmMaxLevel} after {alarmClock:0}s.");
     }
 
     // Every open stream pays townTribute / tributeSeconds per second until empty.
@@ -231,6 +279,7 @@ public class GameManager : MonoBehaviour
         }
 
         Currency -= card.spawnCost;
+        alarmRunning = true; // the defense notices the attack when the first card is played
         MonsterSpawner.Instance.SpawnCard(card, spawnPoint.position, waypoints);
         hand.ConsumeCard(index);
         Debug.Log($"Played '{card.cardName}' ({card.spawnCount}x). Currency left: {Currency}");

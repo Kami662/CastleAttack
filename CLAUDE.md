@@ -56,7 +56,9 @@ decisions. It is mirrored from a claude.ai Project doc, which is the source of t
 
 ## Current scripts (Assets/Scripts/)
 GameManager, CardDefinition, DeckDefinition, HandManager, HandDebugUI (throwaway
-IMGUI hand), MonsterSpawner, MonsterMover, Castle, Tower, Projectile, ProjectilePool,
+IMGUI hand), MonsterSpawner, MonsterMover, Castle, Tower, Armor (flat damage cut,
+min 1), Defender + DefenderPost (soldiers released by towers/castle, GDD §3
+"Defenders"), BountyPopup, Projectile, ProjectilePool,
 UnitCommander, UIManager, GameOverManager, RunManager, RunState (empty shell — see
 GDD §"Anticipated: run state must outlive the encounter scene"), PathVisualizer
 (Scene-view gizmo for the path, on `Path`). No editor scripts right now — the
@@ -90,12 +92,19 @@ card + nothing alive + no town tribute still owed (GDD §3 "Encounter economy").
 **Towns are built too:** a `Tower` with `isTown` ticked (weak gun; pays no plunder or
 bounty; destroying one opens a finite 60-over-30s tribute stream in `GameManager`);
 `Assets/Prefabs/Town.prefab` is a placeholder of cubes, two placed in `GameplayRig`.
+**Also built 2026-09-25 (pulled forward, see GDD §3):** armor (towers 5, castle 3),
+soldiers (`DefenderPost`: towers 2 footmen, castle 6 footmen + 2 archers),
+Sapper/Stunner cards (`towerDamageMultiplier`, `stunSeconds` on `CardDefinition`),
+**per-group orders** (`UnitGroup` per card play; orders Focus Castle / Attack Towers /
+Halt on a placeholder IMGUI panel in `UnitCommander`, dev keys C/T/H set the default for
+new groups) and the **alarm** (`GameManager.AlarmLevel`: +1 per 30s, towers repair,
+posts release faster, castle gets reinforcements). Towers shoot 1 target per shot.
 Next is the balance pass — first-run findings (the cap wastes plunder and tribute,
-possible unaffordable-hand soft-lock) are in GDD §5. Castles have their
+possible unaffordable-hand soft-lock, a direct rush can't win) are in GDD §5. Castles have their
 own defense by design: a `Tower` component on the castle (range 8) that can't be
 targeted or destroyed separately; per-castle gun stats come from `CastleDefinition` (D4). All alpha
-decisions D1–D7 are made (GDD §12.2); flying units, stun, run resources and the
-mobile port are post-alpha (§12.4).
+decisions D1–D7 are made (GDD §12.2); flying units, the general status-effect
+system, run resources and the mobile port are post-alpha (§12.4).
 
 ## Conventions / gotchas
 - Unity 6: `FindObjectOfType` and `FindFirstObjectByType` are both deprecated →
