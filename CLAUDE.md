@@ -83,9 +83,9 @@ visible `Projectile` (placeholder sphere, arrow art later),
 
 **Next:** the rest of GDD §12 phase 1. The hybrid budget (D1) is built; the first
 run won in 52s via Attack Towers + bounties (too easy vs. the ~2-min target) while the
-rush alone lost at range 12 — both feed the phase 1 balance pass. Note the castle has
-its own gun (a `Tower` component on `Castle_Placeholder`, range 6) that can't be
-targeted or destroyed separately. All alpha
+rush alone lost at range 12 — both feed the phase 1 balance pass. Castles have their
+own defense by design: a `Tower` component on the castle (range 6 today) that can't be
+targeted or destroyed separately; per-castle gun stats come from `CastleDefinition` (D4). All alpha
 decisions D1–D7 are made (GDD §12.2); flying units, stun, run resources and the
 mobile port are post-alpha (§12.4).
 
