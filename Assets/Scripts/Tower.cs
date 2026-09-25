@@ -15,6 +15,12 @@ public class Tower : MonoBehaviour
     [Tooltip("Where shots spawn from. If empty, they spawn at the tower's position.")]
     public Transform firePoint;
 
+    [Header("Kind")]
+    [Tooltip("A town is a building beside the road: it shoots weakly, Attack Towers targets it " +
+             "like a tower, but damaging it pays no plunder and destroying it pays no bounty or " +
+             "cap. GameManager starts a finite tribute drip instead (GDD §3 \"Encounter economy\").")]
+    public bool isTown;
+
     [Header("Health (destructible)")]
     public int maxHealth = 100;
     private int health;

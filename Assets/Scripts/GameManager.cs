@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -13,7 +14,7 @@ public class GameManager : MonoBehaviour
     public int startingCurrency = 100;
     [Tooltip("Plunder stops adding once you hold this much. Bounties can go above it. " +
              "Razing towers raises it for the rest of the encounter.")]
-    public int holdingCap = 100;
+    public int holdingCap = 200;
     [Tooltip("Coins earned per point of damage dealt to a tower or the castle.")]
     public float plunderPerDamage = 1f;
     [Tooltip("Paid when a tower is destroyed, on top of the cap.")]
@@ -24,6 +25,11 @@ public class GameManager : MonoBehaviour
     public float[] castleMilestones = { 0.75f, 0.5f, 0.25f };
     [Tooltip("Plunder rate added per milestone crossed (0.25 = +25%).")]
     public float milestonePlunderBonus = 0.25f;
+    [Tooltip("Total coins a destroyed town pays out, as a drip. Finite on purpose: if tribute " +
+             "never ended you could never go broke, and trickling would work again.")]
+    public int townTribute = 60;
+    [Tooltip("How long one town's tribute takes to pay out.")]
+    public float tributeSeconds = 30f;
 
     public int Currency { get; private set; }
     public int CapBonus { get; private set; }
@@ -35,9 +41,20 @@ public class GameManager : MonoBehaviour
     public int PlunderEarned { get; private set; }
     public int PlunderWasted { get; private set; }
     public int BountiesEarned { get; private set; }
+    public int TributeEarned { get; private set; }
+    public int TownsRazed { get; private set; }
 
     // Plunder below one whole coin, carried to the next hit.
     private float plunderCarry;
+
+    // Each destroyed town is one stream: the coins it still owes. While any
+    // stream is open the encounter isn't lost (GameOverManager reads
+    // TributePending), because that money is still on its way.
+    private readonly List<float> tributeStreams = new List<float>();
+    private float tributeCarry;
+    private Vector3 tributeAt;
+    public bool TributePending => tributeStreams.Count > 0;
+    public float TributePerSecond => tributeStreams.Count * townTribute / Mathf.Max(0.01f, tributeSeconds);
 
     // Plunder pop-ups are batched: a 50-unit swarm hits many times a second, and
     // one "+N" per hit would bury the screen.
@@ -69,6 +86,7 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        PayTribute(Time.deltaTime);
         FlushPlunderPopup();
 
         // Dev shortcut: number keys 1-5 play the matching hand slot.
@@ -82,6 +100,7 @@ public class GameManager : MonoBehaviour
 
     void OnTowerDamaged(Tower tower, int damageDealt)
     {
+        if (tower.isTown) return; // towns pay only once destroyed
         Plunder(damageDealt, tower.transform.position);
     }
 
@@ -101,20 +120,36 @@ public class GameManager : MonoBehaviour
         int whole = Mathf.FloorToInt(plunderCarry);
         if (whole <= 0) return;
         plunderCarry -= whole;
+        PlunderEarned += Deposit(whole, at);
+    }
 
-        // Bounties can leave Currency above the cap; that's not an error, it just
-        // means plunder has no room until you spend down.
+    /// <summary>
+    /// Add earned coins up to the cap and return how many fit. Bounties can leave
+    /// Currency above the cap; that's not an error, it just means earned coins
+    /// have no room until you spend down. The rest is lost (PlunderWasted).
+    /// </summary>
+    int Deposit(int coins, Vector3 at)
+    {
         int room = Mathf.Max(0, HoldingCap - Currency);
-        int paid = Mathf.Min(whole, room);
+        int paid = Mathf.Min(coins, room);
         Currency += paid;
-        PlunderEarned += paid;
-        PlunderWasted += whole - paid;
-
+        PlunderWasted += coins - paid;
         if (paid > 0) QueuePlunderPopup(paid, at);
+        return paid;
     }
 
     void OnTowerDestroyed(Tower tower)
     {
+        if (tower.isTown)
+        {
+            TownsRazed++;
+            tributeStreams.Add(townTribute);
+            tributeAt = tower.transform.position;
+            BountyPopup.Show(tributeAt, $"Tribute +{townTribute}");
+            Debug.Log($"Town razed: tribute of {townTribute} over {tributeSeconds:0}s. Currency: {Currency}");
+            return;
+        }
+
         CapBonus += capPerRazedTower;
         Currency += towerBounty; // on top of the cap
         BountiesEarned += towerBounty;
@@ -135,6 +170,28 @@ public class GameManager : MonoBehaviour
                              PlunderColor, PlunderPopupHeight + 3f);
             Debug.Log($"Castle milestone {MilestonesReached}/{castleMilestones.Length} — plunder x{PlunderMultiplier:0.##}");
         }
+    }
+
+    // Every open stream pays townTribute / tributeSeconds per second until empty.
+    void PayTribute(float deltaTime)
+    {
+        if (tributeStreams.Count == 0) return;
+
+        float rate = townTribute / Mathf.Max(0.01f, tributeSeconds);
+        float due = 0f;
+        for (int i = tributeStreams.Count - 1; i >= 0; i--)
+        {
+            float part = Mathf.Min(rate * deltaTime, tributeStreams[i]);
+            tributeStreams[i] -= part;
+            due += part;
+            if (tributeStreams[i] <= 0f) tributeStreams.RemoveAt(i);
+        }
+
+        tributeCarry += due;
+        int whole = Mathf.FloorToInt(tributeCarry);
+        if (whole <= 0) return;
+        tributeCarry -= whole;
+        TributeEarned += Deposit(whole, tributeAt);
     }
 
     void QueuePlunderPopup(int coins, Vector3 at)

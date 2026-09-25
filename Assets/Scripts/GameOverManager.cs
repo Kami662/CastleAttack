@@ -30,10 +30,10 @@ public class GameOverManager : MonoBehaviour
             return;
         }
 
-        // Lose = broke: no affordable card in hand and nothing alive that could
-        // still earn plunder. (Once towns exist, "no tribute still owed" joins
-        // this check — GDD §3 "Encounter economy".)
-        if (gameManager != null && !gameManager.CanPlayAnyCard)
+        // Lose = broke: no affordable card in hand, nothing alive that could
+        // still earn plunder, and no town tribute still on its way (GDD §3
+        // "Encounter economy").
+        if (gameManager != null && !gameManager.CanPlayAnyCard && !gameManager.TributePending)
         {
             // Ask the spawner's live registry rather than scanning the whole
             // scene. Consistent with Tower, and no FindObjectsByType per frame.
@@ -73,7 +73,8 @@ public class GameOverManager : MonoBehaviour
     {
         if (gameManager == null) return "";
         return $"Plunder earned: {gameManager.PlunderEarned} (lost at the cap: {gameManager.PlunderWasted}). " +
-               $"Bounties: {gameManager.BountiesEarned}. Cap: {gameManager.HoldingCap}. " +
+               $"Bounties: {gameManager.BountiesEarned}. Towns razed: {gameManager.TownsRazed} (tribute {gameManager.TributeEarned}). " +
+               $"Cap: {gameManager.HoldingCap}. " +
                $"Plunder rate: x{gameManager.PlunderMultiplier:0.##}.";
     }
 

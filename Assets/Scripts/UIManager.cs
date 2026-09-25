@@ -22,7 +22,11 @@ public class UIManager : MonoBehaviour
         string plunder = gameManager.MilestonesReached > 0
             ? $"   Plunder x{gameManager.PlunderMultiplier:0.##}"
             : "";
-        currencyText.text = $"Currency: {gameManager.Currency} / {gameManager.HoldingCap}{plunder}";
+        // Shown only while a razed town is still paying out.
+        string tribute = gameManager.TributePending
+            ? $"   Tribute +{gameManager.TributePerSecond:0.#}/s"
+            : "";
+        currencyText.text = $"Currency: {gameManager.Currency} / {gameManager.HoldingCap}{plunder}{tribute}";
         castleHPText.text = $"Castle HP: {castle.currentHP}/{castle.maxHP}";
     }
 }
