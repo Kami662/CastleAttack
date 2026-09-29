@@ -64,10 +64,24 @@ public class UnitCommander : MonoBehaviour
         Debug.Log($"Default order for new groups: {order}");
     }
 
-    /// <summary>Called by MonsterSpawner when a card is played: the new group takes DefaultOrder.</summary>
-    public static UnitGroup CreateGroup(CardDefinition card, int totalUnits)
+    /// <summary>
+    /// Called by MonsterSpawner when a card is played. One group per card: if that
+    /// card already has units on the field (or still spawning), the new units join
+    /// its group and follow its current order, so playing Big Push twice gives one
+    /// Big Push group. Otherwise a new group starts with DefaultOrder.
+    /// </summary>
+    public static UnitGroup GetOrCreateGroup(CardDefinition card, int units)
     {
-        var group = new UnitGroup(card, totalUnits, DefaultOrder);
+        foreach (UnitGroup existing in groups)
+        {
+            if (existing.Card == card && !existing.IsFinished)
+            {
+                existing.AddUnits(units);
+                return existing;
+            }
+        }
+
+        var group = new UnitGroup(card, units, DefaultOrder);
         groups.Add(group);
         return group;
     }
@@ -115,15 +129,16 @@ public class UnitCommander : MonoBehaviour
 }
 
 /// <summary>
-/// The units one card play summoned, and the order they follow. Plain class, not a
-/// component: it's data shared by monsters (see MonsterMover.Group).
+/// All of one card's units on the field, and the order they follow. Playing the
+/// same card again adds to the group. Plain class, not a component: it's data
+/// shared by monsters (see MonsterMover.Group).
 /// </summary>
 public class UnitGroup
 {
     public readonly CardDefinition Card;
     public UnitCommander.Order Order;
 
-    private readonly int total;
+    private int total; // grows when the same card is played again (see GetOrCreateGroup)
     private int spawned;
     public int Alive { get; private set; }
 
@@ -139,6 +154,7 @@ public class UnitGroup
     /// <summary>True once every unit has spawned and none are left alive.</summary>
     public bool IsFinished => spawned >= total && Alive <= 0;
 
+    public void AddUnits(int units) { total += units; }
     public void MemberSpawned() { spawned++; Alive++; }
     public void MemberSkipped() { spawned++; } // a spawn that failed, so the group can still finish
     public void MemberGone() { Alive--; }

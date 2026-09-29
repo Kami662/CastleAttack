@@ -95,7 +95,7 @@ bounty; destroying one opens a finite 60-over-30s tribute stream in `GameManager
 **Also built 2026-09-25 (pulled forward, see GDD §3):** armor (towers 5, castle 3),
 soldiers (`DefenderPost`: towers 2 footmen, castle 6 footmen + 2 archers),
 Sapper/Stunner cards (`towerDamageMultiplier`, `stunSeconds` on `CardDefinition`),
-**per-group orders** (`UnitGroup` per card play; orders Focus Castle / Attack Towers /
+**per-group orders** (`UnitGroup` per card (replaying a card adds to its group); orders Focus Castle / Attack Towers /
 Halt on a placeholder IMGUI panel in `UnitCommander`, dev keys C/T/H set the default for
 new groups) and the **alarm** (`GameManager.AlarmLevel`: +1 per 30s, towers repair,
 posts release faster, castle gets reinforcements). Towers shoot 1 target per shot.

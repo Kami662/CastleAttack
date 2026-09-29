@@ -113,7 +113,7 @@ public class MonsterSpawner : MonoBehaviour
     private IEnumerator SpawnGroup(CardDefinition card, Vector3 position, Transform[] waypoints)
     {
         int count = Mathf.Max(1, card.spawnCount);
-        UnitGroup group = UnitCommander.CreateGroup(card, count); // one group per card play
+        UnitGroup group = UnitCommander.GetOrCreateGroup(card, count); // one group per card, however often it's played
         for (int i = 0; i < count; i++)
         {
             MonsterMover m = Spawn(card.monsterPrefab, position, waypoints);
