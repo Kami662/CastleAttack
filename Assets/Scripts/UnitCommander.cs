@@ -30,6 +30,8 @@ public class UnitCommander : MonoBehaviour
 
     [Header("Placeholder group panel (IMGUI)")]
     public bool showPanel = true; // hides the IMGUI panel (the real UI replaces it in Phase 2)
+    [Tooltip("Start with the panel collapsed to its header. The player can toggle it in-game.")]
+    public bool collapsed = false;
 
     // Static state survives scene reloads, so reset to the defaults on load.
     void OnEnable()
@@ -45,11 +47,18 @@ public class UnitCommander : MonoBehaviour
         if (Input.GetKeyDown(haltKey)) SetDefaultOrder(Order.Halt);
 
 #if UNITY_EDITOR
-        // Editor-only test aid: stun every standing tower, to check what a
-        // stunned tower does without needing a Stunner to survive the trip.
+        // Editor-only test aids, for checking things the defense normally prevents
+        // you from reaching. Y: stun every standing tower, without needing a Stunner
+        // to survive the trip. K: chip the castle, for its health bar, the plunder
+        // milestones and (later) the D7 damage-state feedback.
         if (Input.GetKeyDown(KeyCode.Y))
         {
             foreach (Tower t in Tower.StandingTowers) t.Stun(5f);
+        }
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            Castle castle = FindAnyObjectByType<Castle>();
+            if (castle != null) castle.TakeDamage(10);
         }
 #endif
 
@@ -88,16 +97,28 @@ public class UnitCommander : MonoBehaviour
 
     // Throwaway panel, like HandDebugUI: a row per group with one big button per
     // order, plus a row for the default. Every action is one click.
+    //
+    // Collapsible, because the panel sits over the top-right of the field and can
+    // hide what's happening there — the castle and its health bar, in particular.
     void OnGUI()
     {
         if (!showPanel) return;
 
-        const float w = 300f, rowH = 34f, btnW = 88f;
+        const float w = 300f, rowH = 34f, btnW = 88f, toggleW = 26f;
         float x = Screen.width - w - 12f;
         float y = 90f;
 
-        GUI.Box(new Rect(x - 6, y - 6, w + 12, 30 + (groups.Count + 1) * (rowH + 18f) + 6), GUIContent.none);
-        GUI.Label(new Rect(x, y, w, 24), "Orders (C / T / H set the default)");
+        float bodyHeight = collapsed ? 0f : (groups.Count + 1) * (rowH + 18f);
+        GUI.Box(new Rect(x - 6, y - 6, w + 12, 30 + bodyHeight + 6), GUIContent.none);
+
+        // Header: title plus a one-click collapse toggle, so it stays touch-legal.
+        GUI.Label(new Rect(x, y, w - toggleW, 24),
+                  collapsed ? $"Orders ({groups.Count} group{(groups.Count == 1 ? "" : "s")})"
+                            : "Orders (C / T / H set the default)");
+        if (GUI.Button(new Rect(x + w - toggleW, y - 2f, toggleW, 22f), collapsed ? "+" : "–"))
+            collapsed = !collapsed;
+
+        if (collapsed) return;
         y += 28f;
 
         DrawOrderRow(new Rect(x, y, w, rowH), "New groups", DefaultOrder, o => SetDefaultOrder(o), btnW);

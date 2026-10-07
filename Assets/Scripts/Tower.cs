@@ -31,6 +31,12 @@ public class Tower : MonoBehaviour
     private int health;
     public bool IsDestroyed { get; private set; }
 
+    /// <summary>Remaining health as 0–1, for the health bar and future feedback hooks.</summary>
+    public float HealthFraction => maxHealth > 0 ? (float)health / maxHealth : 0f;
+
+    // Created on the first hit, so a building that is never attacked never builds one.
+    private HealthBar healthBar;
+
     [Header("Alarm repair (GDD §3 \"Alarm\")")]
     [Tooltip("HP regained per second for each alarm level, once the tower hasn't been hit for " +
              "Repair Delay seconds. Punishes hit-and-run and slow, split attacks.")]
@@ -179,6 +185,13 @@ public class Tower : MonoBehaviour
         health -= taken;
         lastHitTime = Time.time;
         Damaged?.Invoke(this, dealt);
+
+        // Show the bar before the destroy check: on a killing blow the tower
+        // deactivates itself (taking the bar with it), which is the right moment
+        // for it to disappear.
+        if (healthBar == null) healthBar = HealthBar.Create(transform);
+        healthBar.Set(HealthFraction);
+
         if (health <= 0) DestroyTower();
     }
 

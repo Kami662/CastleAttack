@@ -12,6 +12,12 @@ public class Castle : MonoBehaviour
     /// <summary>Raised on every hit with the damage actually dealt (overkill excluded); GameManager pays plunder and checks milestones.</summary>
     public static event System.Action<Castle, int> Damaged;
 
+    /// <summary>Remaining health as 0–1, for the health bar and future feedback hooks.</summary>
+    public float HealthFraction => maxHP > 0 ? (float)currentHP / maxHP : 0f;
+
+    // Created on the first hit, like the towers'.
+    private HealthBar healthBar;
+
     void Awake()
     {
         currentHP = maxHP;
@@ -31,6 +37,9 @@ public class Castle : MonoBehaviour
             currentHP = 0;
             OnCastleDestroyed();
         }
+
+        if (healthBar == null) healthBar = HealthBar.Create(transform);
+        healthBar.Set(HealthFraction);
 
         // After the destroyed check, so listeners see the final HP and isDestroyed.
         Damaged?.Invoke(this, dealt);

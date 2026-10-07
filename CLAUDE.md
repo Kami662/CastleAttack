@@ -55,7 +55,7 @@ decisions. It is mirrored from a claude.ai Project doc, which is the source of t
   `[MenuItem("Castle Attack/Setup/...")]`. These are one-shot and disposable.
 
 ## Current scripts (Assets/Scripts/)
-GameManager, CardDefinition (incl. `rarity`), DeckDefinition (incl. the wildcard slot), CardPool, HandManager, HandDebugUI (throwaway
+GameManager, CardDefinition (incl. `rarity`), DeckDefinition (incl. the wildcard slot), CardPool, HealthBar (damage-only world-space bars), HandManager, HandDebugUI (throwaway
 IMGUI hand), MonsterSpawner, MonsterMover, Castle, Tower, Armor (flat damage cut,
 min 1), Defender + DefenderPost (soldiers released by towers/castle, GDD §3
 "Defenders"), BountyPopup, Projectile, ProjectilePool,
