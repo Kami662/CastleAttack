@@ -64,6 +64,14 @@ GDD §"Anticipated: run state must outlive the encounter scene"), PathVisualizer
 (Scene-view gizmo for the path, on `Path`). No editor scripts right now — the
 one-shot setup scripts were deleted after running (still in git history).
 
+## Where this is heading (don't build toward the alpha slice)
+The alpha's **3 castles in a fixed order is scaffolding, not the game.** Target
+(decided 2026-10-07, GDD §3 "Run shape"): a **branching map of 8–12 castles, 20–30
+minutes**, routed by the player, across **themed regions of differing battlefield size**.
+So in Phase 3, `RunState` holds a **route chosen at run start** and `CastleDefinition`s
+are a **pool**, never a hardcoded 1→2→3 — the alpha's fixed trio is then just a
+degenerate route. Meta-progression (the "lite") is still undecided and post-alpha.
+
 ## Working todo list
 `docs/game-design-document.md` §12 is the **road to a first playable alpha**: the alpha
 definition, the design decisions D1–D7 (all made 2026-09-24), a phased checklist (0–5) with
