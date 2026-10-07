@@ -41,8 +41,13 @@ decisions. It is mirrored from a claude.ai Project doc, which is the source of t
   overrides, animation state) MUST be reset there or it leaks between lives.
 - **Scenes are just prefab instances.** Both `SampleScene` (canonical) and `Sandbox`
   (scratch) contain only two shared prefabs, so they can't drift apart:
-  - `Assets/Prefabs/GameplayRig.prefab` — managers, UI, spawn point, path, castle,
-    towers, ground (the layout).
+  - `Assets/Prefabs/GameplayRig.prefab` — **managers and UI only** since the D4 split
+    (2026-10-07). No battlefield objects.
+  - `Assets/Prefabs/Castles/CastleLayout_01.prefab` — **the battlefield**: spawn point,
+    path + waypoints, castle, towers, towns, ground. One layout per castle, chosen by a
+    `CastleDefinition` and **instantiated at runtime by `EncounterLoader`**. Consequence:
+    **a scene looks empty in Edit mode** — open the layout prefab to edit the battlefield.
+    To test a different castle without a run, change `EncounterLoader.fallbackCastle`.
   - `Assets/Prefabs/SceneEnvironment.prefab` — camera, light, global volume,
     `RunManager` (which detaches itself at runtime for `DontDestroyOnLoad`).
   - **Rules:** if both scenes need it, it goes in a prefab, never only in a scene.
@@ -55,7 +60,7 @@ decisions. It is mirrored from a claude.ai Project doc, which is the source of t
   `[MenuItem("Castle Attack/Setup/...")]`. These are one-shot and disposable.
 
 ## Current scripts (Assets/Scripts/)
-GameManager, CardDefinition (incl. `rarity`), DeckDefinition (incl. the wildcard slot), CardPool, HealthBar (damage-only world-space bars), HandManager, HandDebugUI (throwaway
+GameManager, CardDefinition (incl. `rarity`), DeckDefinition (incl. the wildcard slot), CardPool, CastleDefinition + CastleLayout + CastlePool + EncounterLoader (D4 per-castle layouts), HealthBar (damage-only world-space bars), HandManager, HandDebugUI (throwaway
 IMGUI hand), MonsterSpawner, MonsterMover, Castle, Tower, Armor (flat damage cut,
 min 1), Defender + DefenderPost (soldiers released by towers/castle, GDD §3
 "Defenders"), BountyPopup, Projectile, ProjectilePool,
