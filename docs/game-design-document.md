@@ -62,13 +62,13 @@ A hand of cards drawn from a deck drives play (§4, "Built: hand & deck system")
 - **A branching map.** A run is a map of castle nodes with branches, and the player **chooses their route** through it — so the route differs every run and choosing it is itself a decision (the safe path vs. the rich one). This is the main source of run-to-run variety alongside the deck.
 - **Themed regions with different map themes and sizes.** Castles don't just differ in tower count — they differ in **battlefield size and visual theme**, grouped into regions the map moves through. `CastleDefinition` already points at a per-castle layout prefab, which carries both the size and the look, so this needs a region/theme tag on it rather than new machinery.
 - **8–12 castles per run, 20–30 minutes.** Long enough for a deck to genuinely transform, short enough to replay in a sitting (roughly Hades length). At the ~2-minute encounter target that is 8–12 encounters plus reward screens.
-- **The "lite" (meta-progression between runs) is still undecided** (§9) and stays post-alpha.
+- **The "lite" (meta-progression between runs)** is decided — four milestone-unlocked tracks, §3 "Meta-progression" — and stays post-alpha.
 - **What this costs, honestly:** authoring. 8–12 castles drawn from a pool, across several themes, is far more layout work than 3 — and it is the main reason the alpha stays at 3. Themed kits (one kit reused across a region's castles) are what make it affordable; see §6 art.
 **Map nodes, run gold and shops — decided 2026-10-07.** The map is **not only castles**.
 - **Shop nodes.** Between castles the route can pass through a shop where the player buys **items / buffs** — the same kind of permanent run upgrade the reward screen already offers (+cap, +plunder %), but chosen and paid for rather than granted. Route choice then trades combat for shopping, which is half of why a branching map is interesting.
 - **Run gold = leftover plunder.** Coins still unspent when you **win** an encounter carry over as run gold, and gold is what shops take. Chosen over a flat per-castle payout because it needs no new resource and it **restores a reward we lost**: when the budget timer was replaced by plunder, the "won with budget left" bonus went with it, so right now winning *efficiently* pays nothing. This makes thrift matter again, as money rather than as card choices (the win bonuses stay card-choice rewards — §3 "Alpha run rules" — so the two tracks don't collide).
 - **⚠ The sharp edge, to settle before building it:** gold rewards *not spending*, and the alarm repairs damaged towers (§3 "Alarm"). Together those make **tower farming** profitable — hurt a tower, let it repair, hurt it again, bank the plunder as gold — which is the trickling behaviour the whole economy is designed to punish. §5 already flags the farming loop as theoretical; converting coins to gold is what would give it a *purpose*. Guard before shipping shops: cap how much converts, convert at a poor rate (e.g. 10 coins → 1 gold), only count coins above a threshold, or stop plunder paying for damage to a tower that has repaired. Not urgent — shops are post-alpha — but don't build the conversion without one.
-- **"Unlock" vs "buy" are different layers.** Buying happens inside a run with gold. Unlocking persists *between* runs, which is meta-progression — still undecided and post-alpha (§9).
+- **"Unlock" vs "buy" are different layers.** Buying happens inside a run with gold. Unlocking persists *between* runs, which is meta-progression — decided 2026-10-07 (§3 "Meta-progression"), still post-alpha.
 - **Other node types** (rests, events, elites) are not decided; shops are the one settled so far.
 
 - **What it means for Phase 3 (the insurance that makes this cheap later):** `RunState` holds the **route chosen when the run starts** — a list of castles — not an index into a hardcoded 1→2→3. `CastleDefinition`s are a **pool drawn from**, not a fixed sequence. With those two, "3 in a fixed order" is just a degenerate route, and growing to a branching map is a generator plus a map screen, with no change to how an encounter loads or reports its result.
@@ -250,6 +250,23 @@ Every card in the roster is chip, rush, stream, flood, damage, soak, anti-buildi
 - **⚠ Architectural note:** `CardDefinition` currently assumes every card summons (`monsterPrefab`, `spawnCount`, `spawnInterval`). A war drum summons **nothing**, so cards need a kind — either a `CardKind` enum (Summon / Effect) on `CardDefinition` with the summon fields ignored for effects, or a separate asset type. Decide that before adding the card, since it is the first card that isn't a summon and everything downstream (`GameManager.PlayCardFromHand`, `MonsterSpawner.SpawnCard`, the hand UI) assumes summoning.
 - Buffs delivered this way are *in-encounter*; the permanent run upgrades bought at shops (§3 "Run shape") are a separate layer.
 
+### Meta-progression (the "lite") — decided 2026-10-07, all post-alpha
+**Four tracks persist between runs, unlocked by milestones rather than a currency.**
+- **New cards into the reward pool.** Unlocks add cards to the pool a run can offer. Runs get more *varied*, never easier, so balance keeps aiming at one target — and it feeds deck growth, the centrepiece. Cards are pure data (Brute/Tank/Runner were ~10 minutes each), so this is the cheapest track by far.
+- **New starter decks.** Alternative opening identities (demolition, raiding, swarm), each a `DeckDefinition` with its own wildcard options. No power delta — a different run feel from castle 1.
+- **A difficulty ladder (ascension-style).** Optional stacking modifiers for players who have won, extending the game *upward*. Shares machinery with run modifiers (§3, blitz/siege/balanced).
+- **Permanent power upgrades.** Flat boosts carried between runs (+monster HP, +starting coins, +cap).
+
+**Unlocked by milestones, not a meta-currency** — "clear a region", "raze 50 towers", "win without losing a castle". No grind loop, no second economy to tune, and each unlock is a small story about how you played.
+
+**⚠ The power track is the risky one, and these are the conditions that make it work.** On its own, permanent power means enough attempts beat the game by attrition, and every encounter has to stay fair across the whole span of player strength — punishing for a team of three that is already six rounds deep balancing *one* encounter (§5). It is viable — Hades does exactly this — but only with guards, and **picking the difficulty ladder alongside it is the standard antidote** (Hades' Pact of Punishment), so the combination chosen here is coherent rather than contradictory. Before building it:
+1. **Cap the total power gain** to a known ceiling (say +20% overall). Balance then covers a *band*, not an open-ended curve.
+2. **Decide which end of that band is "balanced"** — a fresh player or a fully-unlocked one. This is the single most important call and it must be written down before the first upgrade ships. Hades balances around partly-upgraded and expects early losses.
+3. **Never gate variety behind power.** Cards and starter decks unlock on their own track, so an early run is varied-but-weaker rather than boring-and-weaker.
+4. **Build it last** (see order below) — a power band can only be balanced around a baseline, and the baseline does not exist yet, which is exactly why the balance pass is parked.
+
+**Build order when these are picked up, cheapest and safest first:** cards into the pool → starter decks → difficulty ladder → power upgrades. Power last, once the base game is actually balanced.
+
 ### Stun & Status Effects
 - **Decision: some monsters/cards can stun towers.** A stunned tower stops firing for a short duration, then resumes. This exists alongside permanent destruction rather than replacing it.
 - **Why this matters:** it converts a global system rule ("destructible *or* suppressible?") into a **player choice made at deck and play time**. Both answers coexist:
@@ -275,7 +292,7 @@ A unit class that can **leave the waypoint path** once ordered and head straight
 
 ### Other Planned Systems
 - **Castle progression (within an encounter):** the castle gains upgrades from kills — possibly elemental resistance tied to the monster type it last killed.
-- **Meta-progression (between runs) — the "lite".** Something must persist across runs so repeated attempts feel like progress. Likely: new cards unlocked into the acquisition pool, new starter decks, new monster types. Undecided (§9).
+- **Meta-progression (between runs) — the "lite".** ✅ **Decided 2026-10-07** — see §3 "Meta-progression" below.
 - **Destructible castle property:** destroying parts of the castle grants bonus currency mid-encounter.
 - **Castle variety:** a run needs a set of castle layouts varying in tower count, placement, HP profile, and whether they spawn defenders.
 
@@ -378,6 +395,8 @@ The "destruction should feel earned" pillar starts here. Code delivered; being p
 The roguelite structure introduces state spanning multiple encounters — deck, run progress, horde strength, remaining wave budget, active run modifier, meta-progression. That needs a persistent `RunManager` (via `DontDestroyOnLoad` or a bootstrap scene), with `GameManager` handling only the current encounter. `HandManager` is already shaped for this: feed it the run's deck instead of a fixed `DeckDefinition`. Drawing this line early is the difference between "the encounter scene owns everything" (today) and "the encounter scene is handed a context and reports a result" (what the roguelite needs). This boundary also makes save/load cheap — see the next decision.
 
 ### Design decision: save/load — design for it now, build it later (2026-09-18)
+> **Note added 2026-10-07:** meta-progression (§3) is the **first system that genuinely requires saving** — unlocks are worthless if they vanish when the game closes. Everything else so far lives and dies inside a session. So "build it later" now has a concrete trigger: **save/load must exist before the first meta-progression track ships**, and the thing it must persist is a *separate* blob from `RunState` (unlocks outlive a run; run state does not).
+
 **Decision: implement no save system yet, but make the two cheap choices that keep adding it later an afternoon's work rather than a painful refactor.** Nothing stable to save today. Two free-now choices: (1) **separate data from behaviour** — `RunManager`'s state lives in a plain serializable POCO (`RunState`/`PlayerData`), so "saving" is just JSON to `Application.persistentDataPath`; (2) **version the save format from the first write** (`int saveVersion`) to avoid painful migrations later. What needs saving, and when: settings (trivial, `PlayerPrefs`, anytime); meta-progression (build saving when it exists); mid-run resume (matters on mobile — OS kills backgrounded apps — prioritise once runs exist). Do **not** use `PlayerPrefs` for structured run/meta state; serialize a POCO to JSON.
 
 ### Anticipated: a general status-effect system
@@ -599,6 +618,8 @@ Parameters still to tune: tower HP, monster attack rate/range, stun duration & s
 - Where shared cloud storage for source art lives (§11).
 
 ### Resolved
+- ~~What is the "lite" — what persists between runs?~~ → **four milestone-unlocked tracks**: cards into the reward pool, new starter decks, a difficulty ladder, and permanent power upgrades (capped, built last, with the ladder as its counterweight). Unlocked by milestones, not a meta-currency. All post-alpha; §3 "Meta-progression". Decided 2026-10-07.
+- ~~What shape is a run — fixed sequence, random, or a map?~~ → a **branching map of 8–12 castles, 20–30 minutes**, across themed regions of differing battlefield size, with **shop nodes** paid for in **run gold (leftover plunder)**. The alpha's fixed 3 is a slice of this; Phase 3 builds the route/pool data underneath it. §3 "Run shape". Decided 2026-10-07.
 - ~~Pacing: fixed pool or regenerating income? Card-draw cadence?~~ → **earned income ("plunder")**: a starting pot, coins per damage to towers and the castle, tower bounties, towns that pay finite tribute when destroyed, a holding cap, and ways to raise cap and plunder rate; no passive income and no timer; draw-on-play stays; ~2-minute encounters (§3 "Encounter economy"). Decided 2026-09-25. It replaces the hybrid budget (decided and built 2026-09-24), whose income timer was confusing.
 - ~~Starter deck size and contents?~~ → ~10 cards per deck for more draw variety; alpha starter deck 4× Lone Grunt, 3× Grunt Rush, 2× Big Push + a random wildcard (Sapper, Runner or Tank) per run for run-to-run variety; Swarm and Brute are rare rewards. Decided 2026-09-24.
 - ~~Alpha card roster?~~ → 8 cards: the current 4 + Brute, Tank, Sapper, Runner (§3 "Alpha run rules"). Decided 2026-09-24.
@@ -777,7 +798,8 @@ The working checklist, organized around one milestone. §9 stays the place for d
 - **Per-card-group orders + Hold** — *pulled into the alpha on 2026-09-25 and built (§3 "Unit Commands"); only the real touch UI remains, in Phase 2.*
 - Destructible castle parts; castle progression within an encounter. *(Castle-spawned defenders were pulled into the alpha on 2026-09-25 — §3 "Defenders". What stays post-alpha: defender variety per castle, defenders that can be stunned, and elite/hero defenders.)*
 - **Mobile port** — Android first: build profile, performance pass on a mid-range phone (swarm sizes, draw calls), store setup; then iOS (needs a Mac). Mid-run resume becomes important here — mobile OSes kill backgrounded apps (§4 save/load).
-- Meta-progression; save/load + mid-run resume (§4 stance); more starter decks; final art.
+- **Meta-progression** (§3 "Meta-progression", decided 2026-10-07) — four milestone-unlocked tracks, built cheapest-first: cards into the pool → starter decks → difficulty ladder → **power upgrades last**, once there is a balanced baseline to build a power band around. Needs save/load, below.
+- Save/load + mid-run resume (§4 stance); final art.
 - *(Only if skybox/ambient get customized)* move Lighting-window settings onto a component on `SceneEnvironment` (§4 "Scene structure reference").
 
 ### 12.5 Done log
