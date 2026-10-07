@@ -19,6 +19,10 @@ public class UnitCommander : MonoBehaviour
     /// <summary>The order new groups start with.</summary>
     public static Order DefaultOrder { get; private set; } = Order.FocusCastle;
 
+    /// <summary>Any tower or town still standing? Towns register in StandingTowers too
+    /// (only the castle's own gun is excluded), so this covers both.</summary>
+    public static bool AnyBuildingsLeft => Tower.StandingTowers.Count > 0;
+
     private static readonly List<UnitGroup> groups = new List<UnitGroup>();
     /// <summary>Groups that still have units on the field or units left to spawn.</summary>
     public static IReadOnlyList<UnitGroup> Groups => groups;
@@ -65,6 +69,16 @@ public class UnitCommander : MonoBehaviour
         // Drop groups whose units are all gone.
         for (int i = groups.Count - 1; i >= 0; i--)
             if (groups[i].IsFinished) groups.RemoveAt(i);
+
+        // Once every tower and town is razed there is nothing for Attack Towers to
+        // find, and MonsterMover quietly falls through to path-following — so the
+        // order would still read "Towers" while the horde walked to the castle.
+        // Switch the default over so the panel says what actually happens.
+        if (DefaultOrder == Order.AttackTowers && !AnyBuildingsLeft)
+        {
+            Debug.Log("Every tower and town is down — default order switches to Focus Castle.");
+            SetDefaultOrder(Order.FocusCastle);
+        }
     }
 
     public static void SetDefaultOrder(Order order)
@@ -142,7 +156,11 @@ public class UnitCommander : MonoBehaviour
             var order = (Order)i;
             var r = new Rect(rect.x + i * (btnW + 6f), rect.y + 16f, btnW, rect.height - 14f);
             bool selected = order == current;
-            GUI.enabled = !selected;
+            // With every building razed, Attack Towers has no target and would be
+            // flipped straight back by the auto-switch above — so grey it out rather
+            // than offer an order that does nothing.
+            bool unavailable = order == Order.AttackTowers && !AnyBuildingsLeft;
+            GUI.enabled = !selected && !unavailable;
             if (GUI.Button(r, selected ? "[" + names[i] + "]" : names[i])) onPick(order);
             GUI.enabled = true;
         }
