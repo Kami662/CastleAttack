@@ -418,6 +418,25 @@ Starter deck in the current build: 3× Lone Grunt, 2× Grunt Rush, 1× Big Push,
 
 **Reading:** trickling loses ✅ and Swarm needs support ✅ (it can't finish a 100 HP castle), but **a rush alone loses and demolition is far too strong.** One 80-coin Swarm wipes out every building and turns a 100-coin start into 260+, so once you open with it the encounter is decided and the wallet sits at the cap. Two causes: (1) a swarm is 50 damage per second against 100 HP towers and 60 HP towns, while a tower kills only one unit per second, and (2) the building payouts stack (each tower = 40 bounty + 20 cap; each town = 60 tribute), so demolition pays back several times what it costs. The ~74s win is also under the ~2-minute target. **Next tuning steps, one at a time:** make buildings sturdier (tower HP 100 → ~250, town HP 60 → ~150, so demolition costs real units), then trim the payouts if the wallet still fills, then re-tune castle HP for the 2-minute target. Not observed: the unaffordable-hand soft-lock.
 
+**Sixth re-test — direct rush at the real starting coins, 100 not 150 (2026-09-29, SampleScene, 0 errors; rush-shaped test deck as in the fifth test). The fourth/fifth tests' 150-coin runs were inflated by the SampleScene override fixed 2026-09-29 — see below — so their rush numbers don't carry over; this is the first clean reading at 100.**
+
+| Attempt | Opening wave (all Focus Castle) | Result |
+|---|---|---|
+| 1 | Grunt Rush + 2 Lone Grunt — **7 units**, 80 coins | **Lose**, 33s. **0 arrived**, castle untouched, plunder 0 |
+| 2 | Big Push + 2 Lone Grunt — **12 units**, 100 coins (the Lone Grunts landed slightly after the Big Push) | **Lose**, 43s. **0 arrived.** Some got far enough to wake the **castle's own** soldiers (it released a footman and an archer), so the towers alone didn't stop them — but nothing survived the castle's defense either |
+| 3 | Big Push + Grunt Rush together — **15 units**, 100 coins; then 2 Lone Grunt as the pot refilled | **Lose**, 68s. **6 of 15 arrived — 42 damage** (castle 100 → 58; six 7-damage hits inside one second). Best of the five |
+| 4 | Same as 3 — **15 units**; then 1 Lone Grunt | **Lose**, 67s. **4 of 15 arrived — 28 damage** (castle 100 → 72) |
+| 5 | Repeat of 1 — **7 units**, 80 coins | **Lose**, 26.5s. **0 arrived**, castle untouched, plunder 0 |
+
+**Reading (5 runs, opening-wave size varied):** **the size of the first simultaneous wave decides everything, not the coins spent.** Both runs that opened with a **15-unit wave** (Big Push + Grunt Rush played together) broke partway through — 4 and 6 arrivals, real castle damage. All three that opened with **7–12 units** got **exactly 0** through, including run 2 which spent the same full 100 coins as runs 3–4. That is a threshold, not a slope: under roughly 12–15 units in one wave the two towers' fire plus one footman each absorb the group entirely; over it, the surplus bleeds past. **But no run won** — the best case (42 of 100 HP) is less than half — so at 100 coins the direct rush is a *guaranteed* loss however it's played, which is worse than "risky" and is a design problem, not a tuning number. The follow-up waves never mattered either: in runs 3–5 everything played after the opening wave died without adding damage, because by then the castle's soldiers were out.
+
+**Candidate fixes, one at a time, re-testing the same 15-unit wave each time:**
+1. Cut each tower's footman (currently 1) or shorten its alert range, so a 15-unit wave clears a tower with units to spare instead of barely bleeding through.
+2. Raise the starting pot, so one wave can exceed 15 units.
+3. Accept that the direct route needs a cap-growing step first — in which case the **blitz bonus** (win razing nothing) is unreachable by construction and needs rethinking (§3 "Alpha run rules").
+
+**Also fixed 2026-09-29:** `SampleScene`'s `GameManager` had carried an unsaved `startingCurrency: 150` override since the fourth test (2026-09-25) instead of the prefab's 100 — reverted. All re-tests before this one that show "150" starting coins were run against that override, not the designed 100; treat their absolute results as upper bounds, not the real baseline.
+
 **Fifth re-test — soldier counts reduced (2026-09-25, SampleScene, 0 errors; same unsaved Starting Currency 150 override, so 150 coins).** Tower reserve 2 → 1 footman; castle 6 + 2 → 4 footmen + 1 archer; alarm reinforcements +2 → +1 per level. Everything else as in the fourth test.
 
 | Route | Play | Result |
