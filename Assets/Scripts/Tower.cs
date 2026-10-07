@@ -34,6 +34,13 @@ public class Tower : MonoBehaviour
     /// <summary>Remaining health as 0–1, for the health bar and future feedback hooks.</summary>
     public float HealthFraction => maxHealth > 0 ? (float)health / maxHealth : 0f;
 
+    /// <summary>
+    /// Re-sync current health to maxHealth. Awake caches the layout's authored value,
+    /// so a CastleDefinition that scales maxHealth after the layout is instantiated
+    /// must call this or the tower keeps the old health (D4, CastleDefinition.ApplyTo).
+    /// </summary>
+    public void ResetHealthToMax() => health = maxHealth;
+
     // Created on the first hit, so a building that is never attacked never builds one.
     private HealthBar healthBar;
 
