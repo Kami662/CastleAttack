@@ -99,8 +99,14 @@ Sapper/Stunner cards (`towerDamageMultiplier`, `stunSeconds` on `CardDefinition`
 Halt on a placeholder IMGUI panel in `UnitCommander`, dev keys C/T/H set the default for
 new groups) and the **alarm** (`GameManager.AlarmLevel`: +1 per 30s, towers repair,
 posts release faster, castle gets reinforcements). Towers shoot 1 target per shot.
-Next is the balance pass — first-run findings (the cap wastes plunder and tribute,
-possible unaffordable-hand soft-lock, a direct rush can't win) are in GDD §5. Castles have their
+**The balance pass is PARKED (2026-10-07, Kevin's call)** until more of the base
+game exists — six rounds of tuning kept chasing a moving target while the reward
+screen, 3 castles, `CastleDefinition` and the real card hand are still missing.
+Re-open it after Phase 3; everything measured so far, and the three candidate fixes
+for the unwinnable direct rush, are written up in GDD §5 and the parked §12 item.
+**Don't restart balance tuning without asking.** Next is the rest of Phase 1 build
+work (tower HP bars, destruction feedback, Brute/Tank/Runner, the 10-card starter
+deck + `CardPool`, placeholder SFX). Castles have their
 own defense by design: a `Tower` component on the castle (range 8) that can't be
 targeted or destroyed separately; per-castle gun stats come from `CastleDefinition` (D4). All alpha
 decisions D1–D7 are made (GDD §12.2); flying units, the general status-effect
