@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
   cardName: Swarm
   description: Fifty tiny, fragile grunts in a flood. One tower hit kills each, but there are a lot of them.
+  rarity: 1
   spawnCost: 80
   monsterPrefab: {fileID: 1640811771736085792, guid: 26c6b7f141024dd40b027f8719c05869, type: 3}
   spawnCount: 50

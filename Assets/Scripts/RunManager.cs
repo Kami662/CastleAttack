@@ -33,4 +33,17 @@ public class RunManager : MonoBehaviour
         transform.SetParent(null);
         DontDestroyOnLoad(gameObject);
     }
+
+    /// <summary>
+    /// Begin a run: roll the starter deck's wildcard once, so every castle in the run
+    /// is played with the same starting identity (GDD §3 "Alpha run rules"). Called by
+    /// the menu scene's "Start Run" in Phase 3; until that exists, HandManager rolls a
+    /// wildcard per encounter instead (see HandManager.ResolveWildcard).
+    /// </summary>
+    public void StartRun(DeckDefinition starterDeck)
+    {
+        State = new RunState();
+        if (starterDeck != null) State.wildcard = starterDeck.RollWildcard();
+        Debug.Log($"[Run] Started. Wildcard: {(State.wildcard != null ? State.wildcard.cardName : "none")}");
+    }
 }

@@ -55,7 +55,7 @@ decisions. It is mirrored from a claude.ai Project doc, which is the source of t
   `[MenuItem("Castle Attack/Setup/...")]`. These are one-shot and disposable.
 
 ## Current scripts (Assets/Scripts/)
-GameManager, CardDefinition, DeckDefinition, HandManager, HandDebugUI (throwaway
+GameManager, CardDefinition (incl. `rarity`), DeckDefinition (incl. the wildcard slot), CardPool, HandManager, HandDebugUI (throwaway
 IMGUI hand), MonsterSpawner, MonsterMover, Castle, Tower, Armor (flat damage cut,
 min 1), Defender + DefenderPost (soldiers released by towers/castle, GDD §3
 "Defenders"), BountyPopup, Projectile, ProjectilePool,
@@ -104,9 +104,13 @@ game exists — six rounds of tuning kept chasing a moving target while the rewa
 screen, 3 castles, `CastleDefinition` and the real card hand are still missing.
 Re-open it after Phase 3; everything measured so far, and the three candidate fixes
 for the unwinnable direct rush, are written up in GDD §5 and the parked §12 item.
-**Don't restart balance tuning without asking.** Next is the rest of Phase 1 build
-work (tower HP bars, destruction feedback, Brute/Tank/Runner, the 10-card starter
-deck + `CardPool`, placeholder SFX). Castles have their
+**Don't restart balance tuning without asking.** The **8-card roster is complete**
+(Brute, Tank, Runner added 2026-10-07, all pure data) and the **10-card starter deck,
+wildcard slot and `CardPool`** are built: `DeckDefinition.wildcardOptions` +
+`RollWildcard()`, rolled once per run by `RunManager.StartRun` into `RunState.wildcard`
+(per-encounter when there's no run), and `CardDefinition.rarity` feeding
+`CardPool.BuildOffer()` for the Phase 3 reward screen. Remaining Phase 1 work: tower HP
+bars, D7 destruction feedback, placeholder SFX — all needing art. Castles have their
 own defense by design: a `Tower` component on the castle (range 8) that can't be
 targeted or destroyed separately; per-castle gun stats come from `CastleDefinition` (D4). All alpha
 decisions D1–D7 are made (GDD §12.2); flying units, the general status-effect

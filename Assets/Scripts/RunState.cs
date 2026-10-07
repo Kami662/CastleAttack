@@ -12,4 +12,14 @@ public class RunState
     /// <summary>Bump this whenever RunState's shape changes, so a future
     /// save/load can detect and migrate old saves instead of misreading them.</summary>
     public int saveVersion = 1;
+
+    /// <summary>
+    /// The wildcard rolled for this run (GDD §3 "Alpha run rules"): one card from the
+    /// starter deck's options list, fixed for the whole run so every castle is played
+    /// with the same starting identity. Null until a run starts.
+    ///
+    /// Note for save/load: this is an asset reference, so serializing RunState to JSON
+    /// will need it written as an asset id/name and resolved on load, not as the object.
+    /// </summary>
+    public CardDefinition wildcard;
 }

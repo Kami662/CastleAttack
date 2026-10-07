@@ -45,6 +45,9 @@ public class HandManager : MonoBehaviour
         {
             foreach (CardDefinition c in startingDeck.cards)
                 if (c != null) drawPile.Add(c);
+
+            CardDefinition wildcard = ResolveWildcard();
+            if (wildcard != null) drawPile.Add(wildcard);
         }
         else
         {
@@ -52,6 +55,23 @@ public class HandManager : MonoBehaviour
         }
 
         Shuffle(drawPile);
+    }
+
+    /// <summary>
+    /// The deck's wildcard slot (GDD §3 "Alpha run rules"). Inside a run the roll is
+    /// made once by RunManager.StartRun and reused for every castle, so the run keeps
+    /// one identity. Outside a run — pressing Play straight into an encounter scene,
+    /// which is how Sandbox and SampleScene are used — there is nothing to carry it,
+    /// so roll a fresh one for this encounter.
+    /// </summary>
+    private CardDefinition ResolveWildcard()
+    {
+        CardDefinition fromRun = RunManager.Instance != null ? RunManager.Instance.State.wildcard : null;
+        if (fromRun != null) return fromRun;
+
+        CardDefinition rolled = startingDeck.RollWildcard();
+        if (rolled != null) Debug.Log($"Wildcard this encounter: {rolled.cardName}");
+        return rolled;
     }
 
     private void Shuffle(List<CardDefinition> list)

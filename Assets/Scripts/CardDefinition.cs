@@ -13,9 +13,17 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NewCard", menuName = "Castle Attack/Card")]
 public class CardDefinition : ScriptableObject
 {
+    /// <summary>How often a card shows up as a reward (GDD §3 "Alpha run rules").
+    /// Rares are only offered when a win bonus earns them, so they stay special.</summary>
+    public enum Rarity { Common, Rare }
+
     [Header("Identity")]
     public string cardName = "New Card";
     [TextArea] public string description;
+
+    [Tooltip("Reward frequency. Commons fill the normal offer; rares only appear when a " +
+             "win bonus puts one in it (the all-towns bonus). Ignored for starter-deck cards.")]
+    public Rarity rarity = Rarity.Common;
 
     [Header("Cost")]
     [Tooltip("Currency spent to play this card. (Horde-strength cost comes later.)")]

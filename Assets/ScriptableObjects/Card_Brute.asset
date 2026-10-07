@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardDefinition
   cardName: Brute
   description: One huge boss. Slow, but hits ten times harder than a grunt and soaks a lot of fire on the way in.
+  rarity: 1
   spawnCost: 70
   monsterPrefab: {fileID: 1640811771736085792, guid: 26c6b7f141024dd40b027f8719c05869, type: 3}
   spawnCount: 1
